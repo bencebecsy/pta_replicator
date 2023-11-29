@@ -951,3 +951,87 @@ def create_gwb(
         psr.update_residuals()
         ct += 1
 
+def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=0, remove_quad=False):
+    """
+    Function to create GW-induced residuals from an arbitrary GW waveform assuming elliptical polarization.
+    :param psr: pulsar object
+    :param gwtheta: Polar angle of GW source in celestial coords [radians]
+    :param gwphi: Azimuthal angle of GW source in celestial coords [radians]
+    :param waveform_plus: Function defining the plus polarized waveform of the GW [function]
+    :param waveform_cross: Function defining the cross polarized waveform of the GW [function]
+    :param psi: Polarization angle [radians]. Mixes h+ and hx corresponding to rotation along the propagation direction (see eq. (7.24-25) in Maggiore Vol1, 2008).
+    :param tref: Start time, such that gw_waveform gets t-tref as the time argument
+    :param remove_quad: Fit out quadratic from residual if True to simulate f and fdot timing fit.
+    :returns: Vector of induced residuals
+    """
+
+    # define variable for later use
+    cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
+    singwtheta, singwphi = np.sin(gwtheta), np.sin(gwphi)
+
+    # unit vectors to GW source
+    m = np.array([singwphi, -cosgwphi, 0.0])
+    n = np.array([-cosgwtheta * cosgwphi, -cosgwtheta * singwphi, singwtheta])
+    omhat = np.array([-singwtheta * cosgwphi, -singwtheta * singwphi, -cosgwtheta])
+
+    # pulsar location
+    if "RAJ" and "DECJ" in psr.loc.keys():
+        ptheta = np.pi / 2 - psr.loc["DECJ"]
+        pphi = psr.loc["RAJ"]
+    elif "ELONG" and "ELAT" in psr.loc.keys():
+        fac = 1.0#180.0 / np.pi #no need in pint
+        if "B" in psr.name:
+            epoch = "1950"
+        else:
+            epoch = "2000"
+        coords = ephem.Equatorial(ephem.Ecliptic(str(psr.loc["ELONG"] * fac), str(psr.loc["ELAT"] * fac)), epoch=epoch)
+
+        ptheta = np.pi / 2 - float(repr(coords.dec))
+        pphi = float(repr(coords.ra))
+
+    # use definition from Sesana et al 2010 and Ellis et al 2012
+    phat = np.array([np.sin(ptheta) * np.cos(pphi), np.sin(ptheta) * np.sin(pphi), np.cos(ptheta)])
+
+    fplus = 0.5 * (np.dot(m, phat) ** 2 - np.dot(n, phat) ** 2) / (1 + np.dot(omhat, phat))
+    fcross = (np.dot(m, phat) * np.dot(n, phat)) / (1 + np.dot(omhat, phat))
+
+    # get toas from pulsar object
+    toas = psr.toas.get_mjds().value * 86400 - tref
+
+    # define residuals: hplus and hcross
+    hplus = waveform_plus(toas)
+    hcross = waveform_cross(toas)
+
+    #apply rotation by psi angle (see e.g. eq. (7.24-25) in Maggiore Vol1, 2008)
+    rplus = hplus*np.cos(2*psi) - hcross*np.sin(2*psi)
+    rcross = hplus*np.sin(2*psi) + hcross*np.cos(2*psi)
+
+    # residuals
+    res = -fplus*rplus - fcross*rcross
+
+    if remove_quad:
+        pp = np.polyfit(np.array(toas, dtype=np.double), np.array(res, dtype=np.double), 2)
+        res = res - pp[0]*toas**2 -pp[1]*toas - pp[2]
+
+    dt = res * u.s
+    psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.update_residuals()
+
+def add_noise_transient(psr, waveform, tref=0):
+    """
+    Function to create incoherent residuals of arbitrary waveform in a given pulsar.
+    :param psr: pulsar object
+    :param waveform: Function defining the waveform of the glitch [function]
+    :param tref: Start time, such that gw_waveform gets t-tref as the time argument
+    :returns: Vector of induced residuals
+    """
+
+    # get toas from pulsar object
+    toas = psr.toas.get_mjds().value * 86400 - tref
+
+    # call waveform function
+    res = waveform(toas)
+
+    dt = res * u.s
+    psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.update_residuals()
