@@ -4,18 +4,18 @@ Copyright (c) 2014 Stephen R. Taylor
 
 Code contributions by Rutger van Haasteren (piccard), Justin Ellis (PAL/PAL2), and Chiara Mingarelli.
 
+"Numbafied" by Aaron Johnson
 """
 
-from cmath import exp
-from math import acos, atan, cos, factorial, log, pi, sin, sqrt, tan
+# from cmath import exp
 
+from numba import njit
 import numpy as np
 from scipy import special as sp
 
-norm = 3.0 / (8 * pi)
-c00 = sqrt(4 * pi)
+NORM = 3.0 / (8 * np.pi)
 
-
+@njit
 def calczeta(phi1, phi2, theta1, theta2):
     """
     Calculate the angular separation between position (phi1, theta1) and
@@ -28,29 +28,27 @@ def calczeta(phi1, phi2, theta1, theta2):
     if phi1 == phi2 and theta1 == theta2:
         zeta = 0.0
     else:
-        argument = sin(theta1) * sin(theta2) * cos(phi1 - phi2) + cos(theta1) * cos(theta2)
+        argument = np.sin(theta1) * np.sin(theta2) * np.cos(phi1 - phi2) + np.cos(theta1) * np.cos(theta2)
 
         if argument < -1:
             zeta = np.pi
         elif argument > 1:
             zeta = 0.0
         else:
-            zeta = acos(argument)
+            zeta = np.arccos(argument)
 
     return zeta
 
 
 """
-
 Following functions taken from Gair et. al (2014),
 involving solutions of integrals to define the ORF for an
 arbitrarily anisotropic GW background.
-
 """
 
-
+@njit
 def Fminus00(qq, mm, ll, zeta):
-
+    """Taken from Gair et. al (2014)"""
     integrand = 0.0
 
     for ii in range(0, qq + 1):
@@ -59,23 +57,23 @@ def Fminus00(qq, mm, ll, zeta):
             integrand += (
                 (2.0 ** (ii - jj) * (-1.0) ** (qq - ii + jj + mm))
                 * (
-                    factorial(qq)
-                    * factorial(ll + jj)
-                    * (2.0 ** (qq - ii + jj - mm + 1) - (1.0 + cos(zeta)) ** (qq - ii + jj - mm + 1))
+                    sp.factorial(qq)
+                    * sp.factorial(ll + jj)
+                    * (2.0 ** (qq - ii + jj - mm + 1) - (1.0 + np.cos(zeta)) ** (qq - ii + jj - mm + 1))
                 )
                 / (
-                    factorial(ii)
-                    * factorial(qq - ii)
-                    * factorial(jj)
-                    * factorial(ll - jj)
-                    * factorial(jj - mm)
+                    sp.factorial(ii)
+                    * sp.factorial(qq - ii)
+                    * sp.factorial(jj)
+                    * sp.factorial(ll - jj)
+                    * sp.factorial(jj - mm)
                     * (qq - ii + jj - mm + 1)
                 )
             )
 
     return integrand
 
-
+@njit
 def Fminus01(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -86,23 +84,23 @@ def Fminus01(qq, mm, ll, zeta):
             integrand += (
                 (2.0 ** (ii - jj) * (-1.0) ** (qq - ii + jj + mm))
                 * (
-                    factorial(qq)
-                    * factorial(ll + jj)
-                    * (2.0 ** (qq - ii + jj - mm + 2) - (1.0 + cos(zeta)) ** (qq - ii + jj - mm + 2))
+                    sp.factorial(qq)
+                    * sp.factorial(ll + jj)
+                    * (2.0 ** (qq - ii + jj - mm + 2) - (1.0 + np.cos(zeta)) ** (qq - ii + jj - mm + 2))
                 )
                 / (
-                    factorial(ii)
-                    * factorial(qq - ii)
-                    * factorial(jj)
-                    * factorial(ll - jj)
-                    * factorial(jj - mm)
+                    sp.factorial(ii)
+                    * sp.factorial(qq - ii)
+                    * sp.factorial(jj)
+                    * sp.factorial(ll - jj)
+                    * sp.factorial(jj - mm)
                     * (qq - ii + jj - mm + 2)
                 )
             )
 
     return integrand
 
-
+@njit
 def Fplus01(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -112,16 +110,16 @@ def Fplus01(qq, mm, ll, zeta):
             integrand += (
                 (2.0 ** (ii - jj) * (-1.0) ** (ll + qq - ii + jj))
                 * (
-                    factorial(qq)
-                    * factorial(ll + jj)
-                    * (2.0 ** (qq - ii + jj - mm) - (1.0 - cos(zeta)) ** (qq - ii + jj - mm))
+                    sp.factorial(qq)
+                    * sp.factorial(ll + jj)
+                    * (2.0 ** (qq - ii + jj - mm) - (1.0 - np.cos(zeta)) ** (qq - ii + jj - mm))
                 )
                 / (
-                    factorial(ii)
-                    * factorial(qq - ii)
-                    * factorial(jj)
-                    * factorial(ll - jj)
-                    * factorial(jj - mm)
+                    sp.factorial(ii)
+                    * sp.factorial(qq - ii)
+                    * sp.factorial(jj)
+                    * sp.factorial(ll - jj)
+                    * sp.factorial(jj - mm)
                     * (qq - ii + jj - mm)
                 )
             )
@@ -132,17 +130,17 @@ def Fplus01(qq, mm, ll, zeta):
         for jj in range(mm + 1, ll + 1):
             integrand += (
                 (2.0 ** (qq - jj) * (-1.0) ** (ll + jj))
-                * (factorial(ll + jj) * (2.0 ** (jj - mm) - (1.0 - cos(zeta)) ** (jj - mm)))
-                / (factorial(jj) * factorial(ll - jj) * factorial(jj - mm) * (jj - mm))
+                * (sp.factorial(ll + jj) * (2.0 ** (jj - mm) - (1.0 - np.cos(zeta)) ** (jj - mm)))
+                / (sp.factorial(jj) * sp.factorial(ll - jj) * sp.factorial(jj - mm) * (jj - mm))
             )
 
-    integrand += ((-1.0) ** (ll + mm) * 2.0 ** (qq - mm) * factorial(ll + mm) * log(2.0 / (1.0 - cos(zeta)))) / (
-        1.0 * factorial(mm) * factorial(ll - mm)
+    integrand += ((-1.0) ** (ll + mm) * 2.0 ** (qq - mm) * sp.factorial(ll + mm) * np.log(2.0 / (1.0 - np.cos(zeta)))) / (
+        1.0 * sp.factorial(mm) * sp.factorial(ll - mm)
     )
 
     return integrand
 
-
+@njit
 def Fplus00(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -153,110 +151,110 @@ def Fplus00(qq, mm, ll, zeta):
             integrand += (
                 (2.0 ** (ii - jj) * (-1.0) ** (ll + qq - ii + jj))
                 * (
-                    factorial(qq)
-                    * factorial(ll + jj)
-                    * (2.0 ** (qq - ii + jj - mm + 1) - (1.0 - cos(zeta)) ** (qq - ii + jj - mm + 1))
+                    sp.factorial(qq)
+                    * sp.factorial(ll + jj)
+                    * (2.0 ** (qq - ii + jj - mm + 1) - (1.0 - np.cos(zeta)) ** (qq - ii + jj - mm + 1))
                 )
                 / (
-                    factorial(ii)
-                    * factorial(qq - ii)
-                    * factorial(jj)
-                    * factorial(ll - jj)
-                    * factorial(jj - mm)
+                    sp.factorial(ii)
+                    * sp.factorial(qq - ii)
+                    * sp.factorial(jj)
+                    * sp.factorial(ll - jj)
+                    * sp.factorial(jj - mm)
                     * (qq - ii + jj - mm + 1)
                 )
             )
 
     return integrand
 
-
+@njit
 def arbORF(mm, ll, zeta):
 
     if mm == 0:
 
         if ll >= 0 and ll <= 2:
 
-            delta = [1.0 + cos(zeta) / 3.0, -(1.0 + cos(zeta)) / 3.0, 2.0 * cos(zeta) / 15.0]
+            delta = [1.0 + np.cos(zeta) / 3.0, -(1.0 + np.cos(zeta)) / 3.0, 2.0 * np.cos(zeta) / 15.0]
 
             if zeta == 0.0:
                 return (
-                    norm
+                    NORM
                     * 0.5
-                    * sqrt((2.0 * ll + 1.0) * pi)
-                    * (delta[ll] - (1.0 + cos(zeta)) * Fminus00(0, 0, ll, zeta))
+                    * np.sqrt((2.0 * ll + 1.0) * np.pi)
+                    * (delta[ll] - (1.0 + np.cos(zeta)) * Fminus00(0, 0, ll, zeta))
                 )
             else:
                 return (
-                    norm
+                    NORM
                     * 0.5
-                    * sqrt((2.0 * ll + 1.0) * pi)
+                    * np.sqrt((2.0 * ll + 1.0) * np.pi)
                     * (
                         delta[ll]
-                        - (1.0 + cos(zeta)) * Fminus00(0, 0, ll, zeta)
-                        - (1.0 - cos(zeta)) * Fplus01(1, 0, ll, zeta)
+                        - (1.0 + np.cos(zeta)) * Fminus00(0, 0, ll, zeta)
+                        - (1.0 - np.cos(zeta)) * Fplus01(1, 0, ll, zeta)
                     )
                 )
 
         else:
             if zeta == 0.0:
-                return norm * 0.5 * sqrt((2.0 * ll + 1.0) * pi) * (-(1.0 + cos(zeta)) * Fminus00(0, 0, ll, zeta))
+                return NORM * 0.5 * np.sqrt((2.0 * ll + 1.0) * np.pi) * (-(1.0 + np.cos(zeta)) * Fminus00(0, 0, ll, zeta))
             else:
                 return (
-                    norm
+                    NORM
                     * 0.5
-                    * sqrt((2.0 * ll + 1.0) * pi)
-                    * (-(1.0 + cos(zeta)) * Fminus00(0, 0, ll, zeta) - (1.0 - cos(zeta)) * Fplus01(1, 0, ll, zeta))
+                    * np.sqrt((2.0 * ll + 1.0) * np.pi)
+                    * (-(1.0 + np.cos(zeta)) * Fminus00(0, 0, ll, zeta) - (1.0 - np.cos(zeta)) * Fplus01(1, 0, ll, zeta))
                 )
 
     elif mm == 1:
 
         if ll == 1 or ll == 2:
 
-            delta = [2.0 * sin(zeta) / 3.0, -2.0 * sin(zeta) / 5.0]
+            delta = [2.0 * np.sin(zeta) / 3.0, -2.0 * np.sin(zeta) / 5.0]
 
             return (
-                norm
+                NORM
                 * 0.25
-                * sqrt((2.0 * ll + 1.0) * pi)
-                * sqrt((1.0 * factorial(ll - 1)) / (1.0 * factorial(ll + 1)))
+                * np.sqrt((2.0 * ll + 1.0) * np.pi)
+                * np.sqrt((1.0 * sp.factorial(ll - 1)) / (1.0 * sp.factorial(ll + 1)))
                 * (
                     delta[ll - 1]
-                    - ((1.0 + cos(zeta)) ** (3.0 / 2.0) / (1.0 - cos(zeta)) ** (1.0 / 2.0)) * Fminus00(1, 1, ll, zeta)
-                    - ((1.0 - cos(zeta)) ** (3.0 / 2.0) / (1.0 + cos(zeta)) ** (1.0 / 2.0)) * Fplus01(2, 1, ll, zeta)
+                    - ((1.0 + np.cos(zeta)) ** (3.0 / 2.0) / (1.0 - np.cos(zeta)) ** (1.0 / 2.0)) * Fminus00(1, 1, ll, zeta)
+                    - ((1.0 - np.cos(zeta)) ** (3.0 / 2.0) / (1.0 + np.cos(zeta)) ** (1.0 / 2.0)) * Fplus01(2, 1, ll, zeta)
                 )
             )
 
         else:
 
             return (
-                norm
+                NORM
                 * 0.25
-                * sqrt((2.0 * ll + 1.0) * pi)
-                * sqrt((1.0 * factorial(ll - 1)) / (1.0 * factorial(ll + 1)))
+                * np.sqrt((2.0 * ll + 1.0) * np.pi)
+                * np.sqrt((1.0 * sp.factorial(ll - 1)) / (1.0 * sp.factorial(ll + 1)))
                 * (
-                    -((1.0 + cos(zeta)) ** (3.0 / 2.0) / (1.0 - cos(zeta)) ** (1.0 / 2.0)) * Fminus00(1, 1, ll, zeta)
-                    - ((1.0 - cos(zeta)) ** (3.0 / 2.0) / (1.0 + cos(zeta)) ** (1.0 / 2.0)) * Fplus01(2, 1, ll, zeta)
+                    -((1.0 + np.cos(zeta)) ** (3.0 / 2.0) / (1.0 - np.cos(zeta)) ** (1.0 / 2.0)) * Fminus00(1, 1, ll, zeta)
+                    - ((1.0 - np.cos(zeta)) ** (3.0 / 2.0) / (1.0 + np.cos(zeta)) ** (1.0 / 2.0)) * Fplus01(2, 1, ll, zeta)
                 )
             )
 
     else:
 
         return (
-            -norm
+            -NORM
             * 0.25
-            * sqrt((2.0 * ll + 1.0) * pi)
-            * sqrt((1.0 * factorial(ll - mm)) / (1.0 * factorial(ll + mm)))
+            * np.sqrt((2.0 * ll + 1.0) * np.pi)
+            * np.sqrt((1.0 * sp.factorial(ll - mm)) / (1.0 * sp.factorial(ll + mm)))
             * (
-                ((1.0 + cos(zeta)) ** (mm / 2.0 + 1) / (1.0 - cos(zeta)) ** (mm / 2.0)) * Fminus00(mm, mm, ll, zeta)
-                - ((1.0 + cos(zeta)) ** (mm / 2.0) / (1.0 - cos(zeta)) ** (mm / 2.0 - 1.0))
+                ((1.0 + np.cos(zeta)) ** (mm / 2.0 + 1) / (1.0 - np.cos(zeta)) ** (mm / 2.0)) * Fminus00(mm, mm, ll, zeta)
+                - ((1.0 + np.cos(zeta)) ** (mm / 2.0) / (1.0 - np.cos(zeta)) ** (mm / 2.0 - 1.0))
                 * Fminus01(mm - 1, mm, ll, zeta)
-                + ((1.0 - cos(zeta)) ** (mm / 2.0 + 1) / (1.0 + cos(zeta)) ** (mm / 2.0))
+                + ((1.0 - np.cos(zeta)) ** (mm / 2.0 + 1) / (1.0 + np.cos(zeta)) ** (mm / 2.0))
                 * Fplus01(mm + 1, mm, ll, zeta)
-                - ((1.0 - cos(zeta)) ** (mm / 2.0) / (1.0 + cos(zeta)) ** (mm / 2.0 - 1.0)) * Fplus00(mm, mm, ll, zeta)
+                - ((1.0 - np.cos(zeta)) ** (mm / 2.0) / (1.0 + np.cos(zeta)) ** (mm / 2.0 - 1.0)) * Fplus00(mm, mm, ll, zeta)
             )
         )
 
-
+@njit
 def dlmk(l, m, k, theta1):
     """
     returns value of d^l_mk as defined in allen, ottewill 97.
@@ -266,9 +264,9 @@ def dlmk(l, m, k, theta1):
 
     if m >= k:
 
-        factor = sqrt(factorial(l - k) * factorial(l + m) / factorial(l + k) / factorial(l - m))
-        part2 = (cos(theta1 / 2)) ** (2 * l + k - m) * (-sin(theta1 / 2)) ** (m - k) / factorial(m - k)
-        part3 = sp.hyp2f1(m - l, -k - l, m - k + 1, -((tan(theta1 / 2)) ** 2))
+        factor = np.sqrt(sp.factorial(l - k) * sp.factorial(l + m) / sp.factorial(l + k) / sp.factorial(l - m))
+        part2 = (np.cos(theta1 / 2)) ** (2 * l + k - m) * (-np.sin(theta1 / 2)) ** (m - k) / sp.factorial(m - k)
+        part3 = sp.hyp2f1(m - l, -k - l, m - k + 1, -((np.tan(theta1 / 2)) ** 2))
 
         return factor * part2 * part3
 
@@ -276,7 +274,7 @@ def dlmk(l, m, k, theta1):
 
         return (-1) ** (m - k) * dlmk(l, k, m, theta1)
 
-
+@njit
 def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     """
     returns value of D^l_mk as defined in allen, ottewill 97.
@@ -284,10 +282,10 @@ def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     """
 
     return (
-        exp(complex(0.0, -m * phi1)) * dlmk(l, m, k, theta1) * exp(complex(0.0, -k * gamma(phi1, phi2, theta1, theta2)))
+        np.exp(complex(0.0, -m * phi1)) * dlmk(l, m, k, theta1) * np.exp(complex(0.0, -k * gamma(phi1, phi2, theta1, theta2)))
     )
 
-
+@njit
 def gamma(phi1, phi2, theta1, theta2):
     """
     calculate third rotation angle
@@ -299,22 +297,22 @@ def gamma(phi1, phi2, theta1, theta2):
     if phi1 == phi2 and theta1 == theta2:
         gamma = 0
     else:
-        gamma = atan(
-            sin(theta2) * sin(phi2 - phi1) / (cos(theta1) * sin(theta2) * cos(phi1 - phi2) - sin(theta1) * cos(theta2))
+        gamma = np.arctan(
+            np.sin(theta2) * np.sin(phi2 - phi1) / (np.cos(theta1) * np.sin(theta2) * np.cos(phi1 - phi2) - np.sin(theta1) * np.cos(theta2))
         )
 
     dummy_arg = (
-        cos(gamma) * cos(theta1) * sin(theta2) * cos(phi1 - phi2)
-        + sin(gamma) * sin(theta2) * sin(phi2 - phi1)
-        - cos(gamma) * sin(theta1) * cos(theta2)
+        np.cos(gamma) * np.cos(theta1) * np.sin(theta2) * np.cos(phi1 - phi2)
+        + np.sin(gamma) * np.sin(theta2) * np.sin(phi2 - phi1)
+        - np.cos(gamma) * np.sin(theta1) * np.cos(theta2)
     )
 
     if dummy_arg >= 0:
         return gamma
     else:
-        return pi + gamma
+        return np.pi + gamma
 
-
+@njit
 def arbCompFrame_ORF(mm, ll, zeta):
 
     if zeta == 0.0:
@@ -324,20 +322,20 @@ def arbCompFrame_ORF(mm, ll, zeta):
         elif ll == 2:
             if mm == 0:
                 # pulsar-term doubling
-                return 2 * 0.25 * norm * (4.0 / 3) * (sqrt(pi / 5)) * cos(zeta)
+                return 2 * 0.25 * NORM * (4.0 / 3) * (np.sqrt(np.pi / 5)) * np.cos(zeta)
             else:
                 return 0.0
         elif ll == 1:
             if mm == 0:
                 # pulsar-term doubling
-                return -2 * 0.5 * norm * (sqrt(pi / 3.0)) * (1.0 + cos(zeta))
+                return -2 * 0.5 * NORM * (np.sqrt(np.pi / 3.0)) * (1.0 + np.cos(zeta))
             else:
                 return 0.0
         elif ll == 0:
             # pulsar-term doubling
-            return 2.0 * norm * 0.25 * sqrt(pi * 4) * (1 + (cos(zeta) / 3.0))
+            return 2.0 * NORM * 0.25 * np.sqrt(np.pi * 4) * (1 + (np.cos(zeta) / 3.0))
 
-    elif zeta == pi:
+    elif zeta == np.pi:
 
         if ll > 2:
             return 0.0
@@ -352,7 +350,7 @@ def arbCompFrame_ORF(mm, ll, zeta):
 
         return arbORF(mm, ll, zeta)
 
-
+@njit
 def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
     This function takes any gamma in the computational frame and rotates it to the
@@ -367,7 +365,7 @@ def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
 
     return rotated_gamma
 
-
+@njit
 def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
     This function returns the real-valued form of the Overlap Reduction Functions,
@@ -376,7 +374,7 @@ def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
 
     if m > 0:
-        ans = (1.0 / sqrt(2)) * (
+        ans = (1.0 / np.sqrt(2)) * (
             rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml)
             + (-1) ** m * rotated_Gamma_ml(-m, l, phi1, phi2, theta1, theta2, gamma_ml)
         )
@@ -384,14 +382,14 @@ def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     if m == 0:
         return rotated_Gamma_ml(0, l, phi1, phi2, theta1, theta2, gamma_ml).real
     if m < 0:
-        ans = (1.0 / sqrt(2) / complex(0.0, 1)) * (
+        ans = (1.0 / np.sqrt(2) / complex(0.0, 1)) * (
             rotated_Gamma_ml(-m, l, phi1, phi2, theta1, theta2, gamma_ml)
             - (-1) ** m * rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml)
         )
         return ans.real
 
-
-def CorrBasis(psr_locs, lmax):
+@njit
+def correlated_basis(psr_locs, lmax):
 
     corr = []
 

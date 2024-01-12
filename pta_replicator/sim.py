@@ -3,23 +3,24 @@ Code to make simulated PTA datasets with PINT
 Created by Bence Becsy, Jeff Hazboun, Aaron Johnson
 With code adapted from libstempo (Michele Vallisneri)
 """
-
-import glob
+import glob, os
 import numpy as np
+import ephem
+import astropy as ap
 import astropy.units as u
 from astropy.time import Time, TimeDelta
+from astropy.cosmology import Planck18 as cosmo
 
-import ephem
-from scipy import interpolate as interp
 import scipy.constants as sc
-from . import spharmORFbasis as anis
+from scipy import interpolate as interp
+from numba import njit, prange
 
+from holodeck import utils
 from pint.residuals import Residuals
 import pint.toa as toa
 from pint import models
 import pint.fitter
-
-from numba import jit,njit,prange
+import spharmORFbasis as anis
 
 DAY_IN_SEC = 86400
 YEAR_IN_SEC = 365.25 * DAY_IN_SEC
@@ -33,6 +34,10 @@ class SimulatedPulsar:
     Class to hold properties of a simulated pulsar
     """
     def __init__(self, parfile, timfile, ephem='DE440'):
+        if not os.path.isfile(parfile):
+            raise FileNotFoundError("par file does not exist.")
+        if not os.path.isfile(timfile):
+            raise FileNotFoundError("tim file does not exist.")
         self.parfile = parfile
         self.timfile = timfile
         self.ephem = ephem
@@ -43,7 +48,7 @@ class SimulatedPulsar:
 
         try:
             self.loc = {'RAJ': self.model.RAJ.value, 'DECJ': self.model.DECJ.value}
-        except:
+        except KeyError:
             self.loc = {'ELONG': self.model.ELONG.value, 'ELAT': self.model.ELAT.value}
         
     def update_residuals(self):
@@ -67,6 +72,10 @@ class SimulatedPulsar:
         self.f.fit_toas()
         self.model = self.f.model
         self.update_residuals()
+
+
+def load_pulsar(parfile, timfile, ephem='DE440'):
+    
 
 
 def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
@@ -164,7 +173,7 @@ def add_rednoise(psr, A, gamma, components=30,
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
 
-    nobs = len(psr.toas.table)
+    # nobs = len(psr.toas.table)
 
     fyr = 1 / YEAR_IN_SEC
 
@@ -881,7 +890,7 @@ def create_gwb(
                 psrlocs[ii] = float(repr(coords.ra)), float(repr(coords.dec))
 
         psrlocs[:, 1] = np.pi / 2.0 - psrlocs[:, 1]
-        anisbasis = np.array(anis.CorrBasis(psrlocs, lmax))
+        anisbasis = np.array(anis.correlated_basis(psrlocs, lmax))
         ORF = sum(clm[kk] * anisbasis[kk] for kk in range(len(anisbasis)))
         ORF *= 2.0
 
