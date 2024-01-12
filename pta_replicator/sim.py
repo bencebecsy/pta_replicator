@@ -3,7 +3,9 @@ Code to make simulated PTA datasets with PINT
 Created by Bence Becsy, Jeff Hazboun, Aaron Johnson
 With code adapted from libstempo (Michele Vallisneri)
 """
-import glob, os
+import glob
+import os
+from dataclasses import dataclass
 import numpy as np
 import ephem
 import astropy as ap
@@ -29,28 +31,18 @@ SOLAR2S = sc.G / sc.c**3 * 1.98855e30
 KPC2S = sc.parsec / sc.c * 1e3
 MPC2S = sc.parsec / sc.c * 1e6
 
+@dataclass
 class SimulatedPulsar:
     """
     Class to hold properties of a simulated pulsar
     """
-    def __init__(self, parfile, timfile, ephem='DE440'):
-        if not os.path.isfile(parfile):
-            raise FileNotFoundError("par file does not exist.")
-        if not os.path.isfile(timfile):
-            raise FileNotFoundError("tim file does not exist.")
-        self.parfile = parfile
-        self.timfile = timfile
-        self.ephem = ephem
-        self.model = models.get_model(parfile)
-        self.toas = toa.get_TOAs(timfile, ephem=ephem)
-        self.rs = Residuals(self.toas, self.model)
-        self.name = self.model.PSR.value
+    ephem: str = 'DE440'
+    model: models.TimingModel = None
+    toas: toa.TOAs = None
+    rs: Residuals = None
+    name: str = None
+    loc: dict = None
 
-        try:
-            self.loc = {'RAJ': self.model.RAJ.value, 'DECJ': self.model.DECJ.value}
-        except KeyError:
-            self.loc = {'ELONG': self.model.ELONG.value, 'ELAT': self.model.ELAT.value}
-        
     def update_residuals(self):
         """Method to take the current TOAs and model and update the residuals with them"""
         self.rs = Residuals(self.toas, self.model)
@@ -75,6 +67,26 @@ class SimulatedPulsar:
 
 
 def load_pulsar(parfile, timfile, ephem='DE440'):
+    """
+    Load a SimulatedPulsar object from a par and tim file
+
+    Parameters
+    ----------
+    parfile : str
+        Path to par file
+    timfile : str
+        Path to tim file
+    """
+    if not os.path.isfile(parfile):
+        raise FileNotFoundError("par file does not exist.")
+    if not os.path.isfile(timfile):
+        raise FileNotFoundError("tim file does not exist.")
+
+
+    try:
+        loc = {'RAJ': model.RAJ.value, 'DECJ': model.DECJ.value}
+    except KeyError:
+        loc = {'ELONG': model.ELONG.value, 'ELAT': model.ELAT.value}
     
 
 
