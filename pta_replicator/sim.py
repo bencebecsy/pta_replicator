@@ -43,18 +43,13 @@ class SimulatedPulsar:
     name: str = None
     loc: dict = None
 
+    def __repr__(self):
+        return f"SimulatedPulsar({self.name})"
+
     def update_residuals(self):
         """Method to take the current TOAs and model and update the residuals with them"""
         self.rs = Residuals(self.toas, self.model)
 
-    def write_partim(self, outpar, outtim, tempo2=False):
-        """Format for either PINT or Tempo2"""
-        self.model.write_parfile(outpar)
-        if tempo2:
-            self.toas.write_TOA_file(outtim, format='Tempo2')
-        else:
-            self.toas.write_TOA_file(outtim)
-    
     def fit(self):
         """Refit the timing model and update everything"""
         #self.f = pint.fitter.WLSFitter(self.toas, self.model)
@@ -65,6 +60,13 @@ class SimulatedPulsar:
         self.model = self.f.model
         self.update_residuals()
 
+    def write_partim(self, outpar, outtim, tempo2=False):
+        """Format for either PINT or Tempo2"""
+        self.model.write_parfile(outpar)
+        if tempo2:
+            self.toas.write_TOA_file(outtim, format='Tempo2')
+        else:
+            self.toas.write_TOA_file(outtim)
 
 def load_pulsar(parfile, timfile, ephem='DE440'):
     """
@@ -82,13 +84,19 @@ def load_pulsar(parfile, timfile, ephem='DE440'):
     if not os.path.isfile(timfile):
         raise FileNotFoundError("tim file does not exist.")
 
+    model = models.get_model(parfile)
+    toas = toa.get_TOAs(timfile, ephem=ephem, planets=True)
+    rs = Residuals(toas, model)
+    name = model.PSR.value
 
     try:
         loc = {'RAJ': model.RAJ.value, 'DECJ': model.DECJ.value}
-    except KeyError:
+    except AttributeError:
         loc = {'ELONG': model.ELONG.value, 'ELAT': model.ELAT.value}
-    
+    else:
+        raise ValueError("No pulsar location information (RAJ/DECJ or ELONG/ELAT) in parfile.")
 
+    return SimulatedPulsar(ephem=ephem, model=model, toas=toas, rs=rs, name=name, loc=loc)
 
 def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
     '''
