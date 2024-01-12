@@ -21,6 +21,7 @@ from holodeck import utils
 from pint.residuals import Residuals
 import pint.toa as toa
 from pint import models
+from pint import simulation
 import pint.fitter
 import spharmORFbasis as anis
 
@@ -39,7 +40,7 @@ class SimulatedPulsar:
     ephem: str = 'DE440'
     model: models.TimingModel = None
     toas: toa.TOAs = None
-    rs: Residuals = None
+    residuals: Residuals = None
     name: str = None
     loc: dict = None
 
@@ -48,7 +49,7 @@ class SimulatedPulsar:
 
     def update_residuals(self):
         """Method to take the current TOAs and model and update the residuals with them"""
-        self.rs = Residuals(self.toas, self.model)
+        self.residuals = Residuals(self.toas, self.model)
 
     def fit(self):
         """Refit the timing model and update everything"""
@@ -86,7 +87,7 @@ def load_pulsar(parfile, timfile, ephem='DE440'):
 
     model = models.get_model(parfile)
     toas = toa.get_TOAs(timfile, ephem=ephem, planets=True)
-    rs = Residuals(toas, model)
+    residuals = Residuals(toas, model)
     name = model.PSR.value
 
     try:
@@ -94,14 +95,15 @@ def load_pulsar(parfile, timfile, ephem='DE440'):
     except AttributeError:
         loc = {'ELONG': model.ELONG.value, 'ELAT': model.ELAT.value}
     else:
-        raise ValueError("No pulsar location information (RAJ/DECJ or ELONG/ELAT) in parfile.")
+        raise AttributeError("No pulsar location information (RAJ/DECJ or ELONG/ELAT) in parfile.")
 
-    return SimulatedPulsar(ephem=ephem, model=model, toas=toas, rs=rs, name=name, loc=loc)
+    return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
 def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
-    '''
-    Loads a parfile and timfile and returns a pint.toas and pint.model object.
-    '''
+    """
+    Takes a directory of par files and a directory of tim files and
+    loads them into a list of SimulatedPulsar objects
+    """
     unfiltered_pars = sorted(glob.glob(par_dir + "/*.par"))
     filtered_pars = [p for p in unfiltered_pars if ".t2" not in p]
     unfiltered_tims = sorted(glob.glob(tim_dir + "/*.tim"))
@@ -114,16 +116,14 @@ def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
         psrs.append(SimulatedPulsar(par, tim, ephem=ephem))
     return psrs
 
-
 def make_ideal(psr, iterations=2):
-    '''
+    """
     Takes a pint.toas and pint.model object and effectively zeros out the residuals.
-    '''
+    """
     for ii in range(iterations):
         rs=Residuals(psr.toas, psr.model)
         psr.toas.adjust_TOAs(TimeDelta(-1.0*rs.time_resids))
     psr.update_residuals()
-
 
 def createfourierdesignmatrix_red(toas, nmodes=30, Tspan=None,
                                   logf=False, fmin=None, fmax=None,
