@@ -121,8 +121,8 @@ def make_ideal(psr, iterations=2):
     Takes a pint.toas and pint.model object and effectively zeros out the residuals.
     """
     for ii in range(iterations):
-        rs=Residuals(psr.toas, psr.model)
-        psr.toas.adjust_TOAs(TimeDelta(-1.0*rs.time_resids))
+        residuals = Residuals(psr.toas, psr.model)
+        psr.toas.adjust_TOAs(TimeDelta(-1.0*residuals.time_resids))
     psr.update_residuals()
 
 def createfourierdesignmatrix_red(toas, nmodes=30, Tspan=None,
