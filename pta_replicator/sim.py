@@ -61,7 +61,7 @@ class SimulatedPulsar:
         self.model = self.f.model
         self.update_residuals()
 
-    def write_partim(self, outpar, outtim, tempo2=False):
+    def write_partim(self, outpar: str, outtim: str, tempo2: bool = False):
         """Format for either PINT or Tempo2"""
         self.model.write_parfile(outpar)
         if tempo2:
@@ -69,7 +69,7 @@ class SimulatedPulsar:
         else:
             self.toas.write_TOA_file(outtim)
 
-def load_pulsar(parfile, timfile, ephem='DE440'):
+def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPulsar:
     """
     Load a SimulatedPulsar object from a par and tim file
 
@@ -99,7 +99,7 @@ def load_pulsar(parfile, timfile, ephem='DE440'):
 
     return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
-def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
+def load_from_directories(par_dir: str, tim_dir: str, ephem:str = 'DE440', num_psrs: int = None) -> list:
     """
     Takes a directory of par files and a directory of tim files and
     loads them into a list of SimulatedPulsar objects
@@ -113,12 +113,12 @@ def load_psrs(par_dir, tim_dir, ephem='DE440', num_psrs=None):
         if num_psrs:
             if len(psrs) >= num_psrs:
                 break
-        psrs.append(SimulatedPulsar(par, tim, ephem=ephem))
+        psrs.append(load_pulsar(par, tim, ephem=ephem))
     return psrs
 
-def make_ideal(psr, iterations=2):
+def make_ideal(psr: SimulatedPulsar, iterations: int = 2):
     """
-    Takes a pint.toas and pint.model object and effectively zeros out the residuals.
+    Takes a pint.TOAs and pint.TimingModel object and effectively zeros out the residuals.
     """
     for ii in range(iterations):
         residuals = Residuals(psr.toas, psr.model)
@@ -185,7 +185,6 @@ def createfourierdesignmatrix_red(toas, nmodes=30, Tspan=None,
                        ranphase[None,:])
 
     return F, Ffreqs
-
 
 def add_rednoise(psr, A, gamma, components=30,
                  seed=None, modes=None, Tspan=None):
