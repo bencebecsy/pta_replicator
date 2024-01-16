@@ -2,24 +2,6 @@ import numpy as np
 from sim import SimulatedPulsar
 from astropy.time import TimeDelta
 
-# def quantize(times, dt=1):
-#     bins = np.arange(np.min(times), np.max(times) + dt, dt)
-#     indices = np.digitize(times, bins)  # indices are labeled by "right edge"
-#     counts = np.bincount(indices, minlength=len(bins) + 1)
-
-#     bign, smalln = len(times), np.sum(counts > 0)
-
-#     t = np.zeros(smalln, "d")
-#     U = np.zeros((bign, smalln), "d")
-
-#     j = 0
-#     for i, c in enumerate(counts):
-#         if c > 0:
-#             U[indices == i, j] = 1
-#             t[j] = np.mean(times[indices == i])
-#             j = j + 1
-
-#     return t, U
 
 def quantize_fast(times, flags=None, dt=1.0):
     """
@@ -60,46 +42,6 @@ def quantize_fast(times, flags=None, dt=1.0):
     else:
         return avetoas, U
 
-# def add_efac(psr: SimulatedPulsar, efac: float = 1.0,
-#              flags: list = None, seed: int = None):
-#     """Add nominal TOA errors, multiplied by `efac` factor.
-#     Optionally take a pseudorandom-number-generator seed.
-    
-#     Parameters
-#     ----------
-#     psr : SimulatedPulsar
-#         The pulsar to add noise to.
-#     efac : float
-#         The multiplicative factor for the TOA errors.
-#     flags : list
-#         A list of TOA flags to use
-#     seed : int
-#         The seed for the random number generator.
-#     """
-
-#     if seed is not None:
-#         np.random.seed(seed)
-
-#     # default efacvec
-#     efacvec = np.zeros(psr.toas.ntoas)
-
-#     # check that efac is scalar if flags is None
-#     if flags is None:
-#         if not np.isscalar(efac):
-#             raise ValueError('ERROR: If flags is None, efac must be a scalar')
-#         else:
-#             efacvec = np.ones(psr.toas.ntoas) * efac
-
-#     if flags is not None and not np.isscalar(efac):
-#         if len(efac) == len(flags):
-#             for ct, flag in enumerate(flags):
-#                 ind = flag == np.array([f['f'] for f
-#                                         in psr.toas.table['flags'].data])
-#                 efacvec[ind] = efac[ct]
-
-#     dt = efacvec * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas)
-#     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-#     psr.update_residuals()
 
 def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float = 0.0,
                           flags: list = None, seed: int = None, tnequad: bool = False):
@@ -158,6 +100,7 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float 
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
+
 
 def add_jitter(psr, ecorr, flags=None, coarsegrain=0.1, seed=None):
     """

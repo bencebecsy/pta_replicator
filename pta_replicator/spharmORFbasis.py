@@ -15,6 +15,7 @@ from scipy import special as sp
 
 NORM = 3.0 / (8 * np.pi)
 
+
 @njit
 def calczeta(phi1, phi2, theta1, theta2):
     """
@@ -46,6 +47,7 @@ involving solutions of integrals to define the ORF for an
 arbitrarily anisotropic GW background.
 """
 
+
 @njit
 def Fminus00(qq, mm, ll, zeta):
     """Taken from Gair et. al (2014)"""
@@ -73,6 +75,7 @@ def Fminus00(qq, mm, ll, zeta):
 
     return integrand
 
+
 @njit
 def Fminus01(qq, mm, ll, zeta):
 
@@ -99,6 +102,7 @@ def Fminus01(qq, mm, ll, zeta):
             )
 
     return integrand
+
 
 @njit
 def Fplus01(qq, mm, ll, zeta):
@@ -140,6 +144,7 @@ def Fplus01(qq, mm, ll, zeta):
 
     return integrand
 
+
 @njit
 def Fplus00(qq, mm, ll, zeta):
 
@@ -166,6 +171,7 @@ def Fplus00(qq, mm, ll, zeta):
             )
 
     return integrand
+
 
 @njit
 def arbORF(mm, ll, zeta):
@@ -254,6 +260,7 @@ def arbORF(mm, ll, zeta):
             )
         )
 
+
 @njit
 def dlmk(l, m, k, theta1):
     """
@@ -274,6 +281,7 @@ def dlmk(l, m, k, theta1):
 
         return (-1) ** (m - k) * dlmk(l, k, m, theta1)
 
+
 @njit
 def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     """
@@ -284,6 +292,7 @@ def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     return (
         np.exp(complex(0.0, -m * phi1)) * dlmk(l, m, k, theta1) * np.exp(complex(0.0, -k * gamma(phi1, phi2, theta1, theta2)))
     )
+
 
 @njit
 def gamma(phi1, phi2, theta1, theta2):
@@ -311,6 +320,7 @@ def gamma(phi1, phi2, theta1, theta2):
         return gamma
     else:
         return np.pi + gamma
+
 
 @njit
 def arbCompFrame_ORF(mm, ll, zeta):
@@ -350,6 +360,7 @@ def arbCompFrame_ORF(mm, ll, zeta):
 
         return arbORF(mm, ll, zeta)
 
+
 @njit
 def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
@@ -364,6 +375,7 @@ def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
         rotated_gamma += Dlmk(l, m, ii - l, phi1, phi2, theta1, theta2).conjugate() * gamma_ml[ii]
 
     return rotated_gamma
+
 
 @njit
 def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
@@ -387,6 +399,7 @@ def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
             - (-1) ** m * rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml)
         )
         return ans.real
+
 
 @njit
 def correlated_basis(psr_locs, lmax):
