@@ -40,13 +40,11 @@ def calczeta(phi1, phi2, theta1, theta2):
 
     return zeta
 
-
 """
 Following functions taken from Gair et. al (2014),
 involving solutions of integrals to define the ORF for an
 arbitrarily anisotropic GW background.
 """
-
 
 @njit
 def Fminus00(qq, mm, ll, zeta):

@@ -1,6 +1,7 @@
 import numpy as np
 from sim import SimulatedPulsar
 from astropy.time import TimeDelta
+from astropy import units as u
 
 
 def quantize_fast(times, flags=None, dt=1.0):
@@ -43,7 +44,7 @@ def quantize_fast(times, flags=None, dt=1.0):
         return avetoas, U
 
 
-def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float = 0.0,
+def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: float = None,
                           flags: list = None, seed: int = None, tnequad: bool = False):
     """
     Add nominal TOA errors added by EQUAD, and then multiplied by an EFAC factor.
@@ -55,8 +56,8 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float 
         The pulsar to add noise to.
     efac : float
         The multiplicative factor for the TOA errors.
-    equad : float
-        The additive factor for the TOA errors.
+    log10_equad : float
+        The additive factor for the TOA errors measured in log10(seconds).
     flags : list
         A list of TOA flags to use
     seed : int
@@ -65,7 +66,10 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float 
         Whether to add measurment noise as
         EFAC * (TOA error + EQUAD) [default] or EFAC * TOA error + EQUAD.
     """
-
+    if log10_equad is not None:
+        equad = 10**log10_equad
+    else:
+        equad = 0.0
     if seed is not None:
         np.random.seed(seed)
 
@@ -94,9 +98,9 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, equad: float 
 
     dt = efacvec * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas)
     if tnequad:
-        dt += equadvec * np.random.randn(psr.toas.ntoas)
+        dt += equadvec * np.random.randn(psr.toas.ntoas) * u.s
     else:
-        dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas)
+        dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
@@ -148,4 +152,7 @@ def add_jitter(psr, ecorr, flags=None, coarsegrain=0.1, seed=None):
         else:
             raise ValueError("ERROR: flags must be same length as jitter")
 
-    psr.stoas[:] += (1 / day) * np.dot(U * ecorrvec, np.random.randn(U.shape[1]))
+    dt = u.s * np.dot(U * ecorrvec, np.random.randn(U.shape[1]))
+
+    psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.update_residuals()

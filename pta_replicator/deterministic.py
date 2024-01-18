@@ -468,7 +468,7 @@ def loop_over_CWs(phat, toas, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_
 
 
 #@profile
-def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=100, seed=1234):
+def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=100, seed=None):
     """Function to create realistic datasets based on holodeck SMBHB populations by injecting loudest binaries individually and the rest as a GWB. Based on methods described in Becsy, Cornish, Kelley (2022)"""
     PC = ap.constants.pc.cgs.value
     MSOL = ap.constants.M_sun.cgs.value
