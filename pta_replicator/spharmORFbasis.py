@@ -3,20 +3,14 @@ Created by stevertaylor
 Copyright (c) 2014 Stephen R. Taylor
 
 Code contributions by Rutger van Haasteren (piccard), Justin Ellis (PAL/PAL2), and Chiara Mingarelli.
-
-"Numbafied" by Aaron Johnson
 """
 
-# from cmath import exp
-
-from numba import njit
 import numpy as np
 from scipy import special as sp
 
 NORM = 3.0 / (8 * np.pi)
 
 
-@njit
 def calczeta(phi1, phi2, theta1, theta2):
     """
     Calculate the angular separation between position (phi1, theta1) and
@@ -46,7 +40,6 @@ involving solutions of integrals to define the ORF for an
 arbitrarily anisotropic GW background.
 """
 
-@njit
 def Fminus00(qq, mm, ll, zeta):
     """Taken from Gair et. al (2014)"""
     integrand = 0.0
@@ -74,7 +67,6 @@ def Fminus00(qq, mm, ll, zeta):
     return integrand
 
 
-@njit
 def Fminus01(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -102,7 +94,6 @@ def Fminus01(qq, mm, ll, zeta):
     return integrand
 
 
-@njit
 def Fplus01(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -143,7 +134,6 @@ def Fplus01(qq, mm, ll, zeta):
     return integrand
 
 
-@njit
 def Fplus00(qq, mm, ll, zeta):
 
     integrand = 0.0
@@ -171,7 +161,6 @@ def Fplus00(qq, mm, ll, zeta):
     return integrand
 
 
-@njit
 def arbORF(mm, ll, zeta):
 
     if mm == 0:
@@ -259,7 +248,6 @@ def arbORF(mm, ll, zeta):
         )
 
 
-@njit
 def dlmk(l, m, k, theta1):
     """
     returns value of d^l_mk as defined in allen, ottewill 97.
@@ -280,7 +268,6 @@ def dlmk(l, m, k, theta1):
         return (-1) ** (m - k) * dlmk(l, k, m, theta1)
 
 
-@njit
 def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     """
     returns value of D^l_mk as defined in allen, ottewill 97.
@@ -292,7 +279,6 @@ def Dlmk(l, m, k, phi1, phi2, theta1, theta2):
     )
 
 
-@njit
 def gamma(phi1, phi2, theta1, theta2):
     """
     calculate third rotation angle
@@ -320,7 +306,6 @@ def gamma(phi1, phi2, theta1, theta2):
         return np.pi + gamma
 
 
-@njit
 def arbCompFrame_ORF(mm, ll, zeta):
 
     if zeta == 0.0:
@@ -359,7 +344,6 @@ def arbCompFrame_ORF(mm, ll, zeta):
         return arbORF(mm, ll, zeta)
 
 
-@njit
 def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
     This function takes any gamma in the computational frame and rotates it to the
@@ -375,7 +359,6 @@ def rotated_Gamma_ml(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     return rotated_gamma
 
 
-@njit
 def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
     """
     This function returns the real-valued form of the Overlap Reduction Functions,
@@ -399,7 +382,6 @@ def real_rotated_Gammas(m, l, phi1, phi2, theta1, theta2, gamma_ml):
         return ans.real
 
 
-@njit
 def correlated_basis(psr_locs, lmax):
 
     corr = []

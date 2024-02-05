@@ -33,7 +33,7 @@ def extrap1d(interpolator):
     return ufunclike
 
 
-def createfourierdesignmatrix_red(toas: np.ndarray, nmodes: int = 30,
+def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
                                   Tspan: float = None, logf: bool = False,
                                   fmin: float = None, fmax: float = None,
                                   pshift: bool = False, modes: np.ndarray = None) -> tuple:
@@ -96,13 +96,14 @@ def createfourierdesignmatrix_red(toas: np.ndarray, nmodes: int = 30,
     return F, Ffreqs
 
 
-def add_rednoise(psr: SimulatedPulsar, A: float, gamma: float,
+def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float,
                  components: int = 30, seed: int = None,
                  modes: np.ndarray = None, Tspan: float = None):
     """Add red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma,
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
-
+    A = 10**(log10_amplitude)
+    gamma = spectral_index
     # nobs = len(psr.toas.table)
 
     fyr = 1 / YEAR_IN_SEC
@@ -114,7 +115,7 @@ def add_rednoise(psr: SimulatedPulsar, A: float, gamma: float,
 
     toas = np.array(psr.toas.table['tdbld'], dtype='float64') * DAY_IN_SEC #to sec
     Tspan = toas.max() - toas.min()
-    F, freqs = createfourierdesignmatrix_red(toas, Tspan=Tspan, nmodes=components, modes=modes)
+    F, freqs = create_fourier_design_matrix_red(toas, Tspan=Tspan, nmodes=components, modes=modes)
     prior = A**2 * (freqs/fyr)**(-gamma) / (12 * np.pi**2 * Tspan) * YEAR_IN_SEC**3
     y = np.sqrt(prior) * np.random.randn(freqs.size)
     dt = np.dot(F,y) * u.s
@@ -122,11 +123,11 @@ def add_rednoise(psr: SimulatedPulsar, A: float, gamma: float,
     psr.update_residuals()
 
 
-def create_gwb(
+def add_gwb(
     psrs,
-    Amp,
-    gam,
-    noCorr=False,
+    log10_amplitude,
+    spectral_index,
+    no_correlations=False,
     seed=None,
     turnover=False,
     clm=[np.sqrt(4.0 * np.pi)],
@@ -141,10 +142,10 @@ def create_gwb(
     """
     Function to create GW-induced residuals from a stochastic GWB as defined
     in Chamberlin, Creighton, Demorest, et al. (2014).
-    :param toas_list: list of toas to inject GWB into
-    :param Amp: Amplitude of red noise in GW units
-    :param gam: Red noise power law spectral index
-    :param noCorr: Add red noise with no spatial correlations
+    :param psrs: list of SimulatedPulsars to inject GWB into
+    :param log10_amplitude: Amplitude of red noise in GW units
+    :param spectral_index: Red noise power law spectral index
+    :param no_correlations: Add red noise with no spatial correlations
     :param seed: Random number seed
     :param turnover: Produce spectrum with turnover at frequency f0
     :param clm: coefficients of spherical harmonic decomposition of GW power
@@ -158,7 +159,8 @@ def create_gwb(
     :param howml: Lowest frequency is 1/(howml * T)
     :returns: list of residuals for each pulsar
     """
-
+    Amp = 10**log10_amplitude
+    gam = spectral_index
     if seed is not None:
         np.random.seed(seed)
 
@@ -184,7 +186,7 @@ def create_gwb(
     dt = dur / npts
 
     # compute the overlap reduction function
-    if noCorr:
+    if no_correlations:
         ORF = np.diag(np.ones(Npulsars) * 2)
     else:
         psrlocs = np.zeros((Npulsars, 2))
@@ -266,7 +268,7 @@ def create_gwb(
     for ll in range(Npulsars):
         Res[ll, :] = Res_t[ll, 10 : (npts + 10)]
         f = interp.interp1d(ut, Res[ll, :], kind="linear")
-        res_gw.append(f(psrs[ll].toas.get_mjds().value.astype(np.float) * 86400))
+        res_gw.append(f(psrs[ll].toas.get_mjds().value.astype(float) * 86400))
 
     # return res_gw
     ct = 0

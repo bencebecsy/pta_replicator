@@ -15,6 +15,8 @@ import pint.toa as toa
 from pint import models
 import pint.fitter
 
+from enterprise.pulsar import Pulsar
+
 DAY_IN_SEC = 86400
 YEAR_IN_SEC = 365.25 * DAY_IN_SEC
 DMk = 4.15e3  # Units MHz^2 cm^3 pc sec
@@ -59,6 +61,12 @@ class SimulatedPulsar:
             self.toas.write_TOA_file(outtim, format='Tempo2')
         else:
             self.toas.write_TOA_file(outtim)
+    
+    def to_enterprise(self):
+        """
+        Convert to enterprise Pulsar object
+        """
+        return Pulsar(self.toas, self.model, ephem='DE440', timing_package='pint')
 
 
 def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPulsar:
@@ -92,14 +100,18 @@ def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPul
     return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
 
-def load_from_directories(par_dir: str, tim_dir: str, ephem:str = 'DE440', num_psrs: int = None) -> list:
+def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psrs: int = None) -> list:
     """
     Takes a directory of par files and a directory of tim files and
     loads them into a list of SimulatedPulsar objects
     """
-    unfiltered_pars = sorted(glob.glob(par_dir + "/*.par"))
+    if not os.path.isdir(pardir):
+        raise FileNotFoundError("par directory does not exist.")
+    if not os.path.isdir(timdir):
+        raise FileNotFoundError("tim directory does not exist.")
+    unfiltered_pars = sorted(glob.glob(pardir + "/*.par"))
     filtered_pars = [p for p in unfiltered_pars if ".t2" not in p]
-    unfiltered_tims = sorted(glob.glob(tim_dir + "/*.tim"))
+    unfiltered_tims = sorted(glob.glob(timdir + "/*.tim"))
     combo_list = list(zip(filtered_pars, unfiltered_tims))
     psrs = []
     for par, tim in combo_list:
