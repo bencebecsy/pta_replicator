@@ -6,7 +6,7 @@ from astropy.time import TimeDelta
 from astropy import units as u
 from astropy.cosmology import Planck18 as cosmo
 from holodeck import utils
-from red_noise import create_gwb
+from pta_replicator.red_noise import create_gwb
 
 from numba import njit, prange
 
@@ -163,6 +163,8 @@ def add_cgw(
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    # TODO: add parameters to added signals like this
+    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
 
 
@@ -221,6 +223,8 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
         #Now add residual to TOAs
         dt = res * u.s
         psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+        # TODO: add parameters to added signals like this
+        # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
         psr.update_residuals()
 
 
@@ -638,6 +642,8 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    # TODO: add parameters to added signals like this
+    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
 
 
@@ -658,4 +664,6 @@ def add_noise_transient(psr, waveform, tref=0):
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    # TODO: add parameters to added signals like this
+    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()

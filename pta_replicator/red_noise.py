@@ -1,10 +1,10 @@
 import numpy as np
-from sim import SimulatedPulsar
-from constants import DAY_IN_SEC, YEAR_IN_SEC
+from pta_replicator.simulate import SimulatedPulsar
+from pta_replicator.constants import DAY_IN_SEC, YEAR_IN_SEC
 from astropy import units as u
 from astropy.time import TimeDelta
 import ephem
-import spharmORFbasis as anis
+import pta_replicator.spharmORFbasis as anis
 from scipy import interpolate as interp
 
 
@@ -97,8 +97,8 @@ def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
 
 
 def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float,
-                 components: int = 30, seed: int = None,
-                 modes: np.ndarray = None, Tspan: float = None):
+                  components: int = 30, seed: int = None,
+                  modes: np.ndarray = None, Tspan: float = None):
     """Add red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma,
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
@@ -120,24 +120,26 @@ def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: 
     y = np.sqrt(prior) * np.random.randn(freqs.size)
     dt = np.dot(F,y) * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.added_signals['{}_red_noise_amplitude'.format(psr.name)] = log10_amplitude
+    psr.added_signals['{}_red_noise_spectral_index'.format(psr.name)] = spectral_index
     psr.update_residuals()
 
 
 def add_gwb(
-    psrs,
-    log10_amplitude,
-    spectral_index,
-    no_correlations=False,
-    seed=None,
-    turnover=False,
-    clm=[np.sqrt(4.0 * np.pi)],
-    lmax=0,
-    f0=1e-9,
-    beta=1,
-    power=1,
-    userSpec=None,
-    npts=600,
-    howml=10,
+    psrs: list,
+    log10_amplitude: float,
+    spectral_index: float,
+    no_correlations: bool = False,
+    seed: int = None,
+    turnover: bool = False,
+    clm: list = [np.sqrt(4.0 * np.pi)],
+    lmax: int = 0,
+    f0: float = 1e-9,
+    beta: float = 1,
+    power: float = 1,
+    userSpec: np.ndarray = None,
+    npts: int = 600,
+    howml: int = 10,
 ):
     """
     Function to create GW-induced residuals from a stochastic GWB as defined
@@ -275,5 +277,7 @@ def add_gwb(
     for psr in psrs:
         dt = res_gw[ct] / 86400.0 * u.day
         psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+        psr.added_signals['{}_gwb_amplitude'.format(psr.name)] = log10_amplitude
+        psr.added_signals['{}_gwb_spectral_index'.format(psr.name)] = spectral_index
         psr.update_residuals()
         ct += 1

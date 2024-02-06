@@ -27,6 +27,7 @@ class SimulatedPulsar:
     residuals: Residuals = None
     name: str = None
     loc: dict = None
+    added_signals: dict = None
 
     def __repr__(self):
         return f"SimulatedPulsar({self.name})"
@@ -120,4 +121,5 @@ def make_ideal(psr: SimulatedPulsar, iterations: int = 2):
     for ii in range(iterations):
         residuals = Residuals(psr.toas, psr.model)
         psr.toas.adjust_TOAs(TimeDelta(-1.0*residuals.time_resids))
+    psr.added_signals = {}
     psr.update_residuals()

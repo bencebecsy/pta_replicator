@@ -1,5 +1,5 @@
 import numpy as np
-from sim import SimulatedPulsar
+from pta_replicator.simulate import SimulatedPulsar
 from astropy.time import TimeDelta
 from astropy import units as u
 
@@ -103,10 +103,16 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: 
         dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.added_signals['{}_white_noise_efac'.format(psr.name)] = efac
+    if log10_equad is not None and not tnequad:
+        psr.added_signals['{}_white_noise_log10_t2equad'.format(psr.name)] = log10_equad
+    elif log10_equad is not None and tnequad:
+        psr.added_signals['{}_white_noise_log10_tnequad'.format(psr.name)] = log10_equad
     psr.update_residuals()
 
 
-def add_jitter(psr, ecorr, flags=None, coarsegrain=0.1, seed=None):
+def add_jitter(psr: SimulatedPulsar, log10_ecorr: float, flags: list = None,
+               coarsegrain: float = 0.1, seed: int = None):
     """
     Add correlated quadrature noise of rms ecorr [s],
     with coarse-graining time coarsegrain [days].
@@ -125,6 +131,7 @@ def add_jitter(psr, ecorr, flags=None, coarsegrain=0.1, seed=None):
     seed : int
         The seed for the random number generator.
     """
+    ecorr = 10**log10_ecorr
 
     if seed is not None:
         np.random.seed(seed)
@@ -155,4 +162,5 @@ def add_jitter(psr, ecorr, flags=None, coarsegrain=0.1, seed=None):
     dt = u.s * np.dot(U * ecorrvec, np.random.randn(U.shape[1]))
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
