@@ -1,2 +1,0 @@
-B1855+09_red_noise_gamma:Uniform(pmin=0, pmax=7)
-B1855+09_red_noise_log10_A:Uniform(pmin=-20, pmax=-11)
