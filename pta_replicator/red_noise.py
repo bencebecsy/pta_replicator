@@ -120,8 +120,8 @@ def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: 
     y = np.sqrt(prior) * np.random.randn(freqs.size)
     dt = np.dot(F,y) * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    psr.added_signals['{}_red_noise_amplitude'.format(psr.name)] = log10_amplitude
-    psr.added_signals['{}_red_noise_spectral_index'.format(psr.name)] = spectral_index
+    psr.update_added_signals('{}_red_noise'.format(psr.name), 
+                             {'amplitude': log10_amplitude, 'spectral_index': spectral_index})
     psr.update_residuals()
 
 
@@ -277,7 +277,7 @@ def add_gwb(
     for psr in psrs:
         dt = res_gw[ct] / 86400.0 * u.day
         psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-        psr.added_signals['{}_gwb_amplitude'.format(psr.name)] = log10_amplitude
-        psr.added_signals['{}_gwb_spectral_index'.format(psr.name)] = spectral_index
+        psr.update_added_signals('{}_gwb'.format(psr.name), 
+                                 {'amplitude': log10_amplitude, 'spectral_index': spectral_index})
         psr.update_residuals()
         ct += 1

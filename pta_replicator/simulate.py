@@ -53,12 +53,20 @@ class SimulatedPulsar:
             self.toas.write_TOA_file(outtim, format='Tempo2')
         else:
             self.toas.write_TOA_file(outtim)
-    
-    def to_enterprise(self):
+
+    def update_added_signals(self, signal_name, param_dict, deterministic=False):
         """
-        Convert to enterprise Pulsar object
+        Update the timing model with a new signal
         """
-        return Pulsar(self.toas, self.model, ephem='DE440', timing_package='pint')
+        if signal_name in self.added_signals and not deterministic:
+            raise ValueError(f"{signal_name} already exists in the model.")
+        self.added_signals[signal_name] = param_dict
+
+    def to_enterprise(self, ephem='DE440'):
+        """
+        Convert to enterprise PintPulsar object
+        """
+        return Pulsar(self.toas, self.model, ephem=ephem, timing_package='pint')
 
 
 def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPulsar:

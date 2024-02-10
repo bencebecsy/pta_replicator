@@ -44,8 +44,10 @@ def quantize_fast(times, flags=None, dt=1.0):
         return avetoas, U
 
 
-def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: float = None,
-                          flags: list = None, seed: int = None, tnequad: bool = False):
+def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
+                          log10_equad: float = None,
+                          flagid: str = 'f', flags: list = None,
+                          seed: int = None, tnequad: bool = False):
     """
     Add nominal TOA errors added by EQUAD, and then multiplied by an EFAC factor.
     Optionally take a pseudorandom-number-generator seed.
@@ -54,10 +56,12 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: 
     ----------
     psr : SimulatedPulsar
         The pulsar to add noise to.
-    efac : float
+    efac : float or list
         The multiplicative factor for the TOA errors.
-    log10_equad : float
+    log10_equad : float or list
         The additive factor for the TOA errors measured in log10(seconds).
+    flagid : str
+        The key for the flags in the TOA table.
     flags : list
         A list of TOA flags to use
     seed : int
@@ -89,12 +93,12 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: 
     if (flags is not None and not np.isscalar(efac)) or (flags is not None and not np.isscalar(equad)):
         if len(efac) == len(flags) and len(equad) == len(flags):
             for ct, flag in enumerate(flags):
-                ind = flag == np.array([f['f'] for f
+                ind = flag == np.array([f[flagid] for f
                                         in psr.toas.table['flags'].data])
                 efacvec[ind] = efac[ct]
                 equadvec[ind] = equad[ct]
         else:
-            raise ValueError('ERROR: flags must be same length as efac and equad')
+            raise ValueError('ERROR: flags must be same length as efac and log10_equad')
 
     dt = efacvec * psr.toas.get_errors().to('s') * np.random.randn(psr.toas.ntoas)
     if tnequad:
@@ -103,15 +107,21 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0, log10_equad: 
         dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    psr.added_signals['{}_white_noise_efac'.format(psr.name)] = efac
-    if log10_equad is not None and not tnequad:
-        psr.added_signals['{}_white_noise_log10_t2equad'.format(psr.name)] = log10_equad
-    elif log10_equad is not None and tnequad:
-        psr.added_signals['{}_white_noise_log10_tnequad'.format(psr.name)] = log10_equad
     psr.update_residuals()
 
+    # update the added_signals dictionary
+    equad_str = 'tnequad' if tnequad else 't2equad'
+    if flags is None:
+        psr.update_added_signals('{}_measurement_noise'.format(psr.name),
+                                 {'efac': efac, 'log10_' + equad_str: log10_equad})
+    else:
+        for flag in flags:
+            psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
+                                     {'efac': efac, 'log10_' + equad_str: log10_equad})
 
-def add_jitter(psr: SimulatedPulsar, log10_ecorr: float, flags: list = None,
+
+def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
+               flagid: str = 'f', flags: list = None,
                coarsegrain: float = 0.1, seed: int = None):
     """
     Add correlated quadrature noise of rms ecorr [s],
@@ -124,6 +134,8 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float, flags: list = None,
         The pulsar to add noise to.
     ecorr : float
         The rms of the jitter noise.
+    flagid : str
+        The key for the flags in the TOA table.
     flags : list
         A list of TOA flags to use
     coarsegrain : float
@@ -137,9 +149,11 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float, flags: list = None,
         np.random.seed(seed)
 
     if flags is None:
-        t, U = quantize_fast(np.array(psr.toas(), "d"), dt=coarsegrain)
+        t, U = quantize_fast(psr.toas.get_mjds().value, dt=coarsegrain)
     elif flags is not None:
-        t, f, U = quantize_fast(np.array(psr.toas(), "d"), np.array(psr.flagvals(flags)), dt=coarsegrain)
+        t, f, U = quantize_fast(psr.toas.get_mjds().value,
+                                np.array([f[flagid] for f in psr.toas.table['flags'].data]),
+                                dt=coarsegrain)
 
     # default jitter value
     ecorrvec = np.zeros(len(t))
@@ -162,5 +176,13 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float, flags: list = None,
     dt = u.s * np.dot(U * ecorrvec, np.random.randn(U.shape[1]))
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
+
+    # update the added_signals dictionary
+    if flags is None:
+        psr.update_added_signals('{}_jitter'.format(psr.name),
+                                 {'log10_ecorr': log10_ecorr})
+    else:
+        for flag in flags:
+            psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
+                                     {'log10_ecorr': log10_ecorr})
