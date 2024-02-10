@@ -70,6 +70,16 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         Whether to add measurment noise as
         EFAC * (TOA error + EQUAD) [default] or EFAC * TOA error + EQUAD.
     """
+    # update the added_signals dictionary
+    equad_str = 'tnequad' if tnequad else 't2equad'
+    if flags is None:
+        psr.update_added_signals('{}_measurement_noise'.format(psr.name),
+                                 {'efac': efac, 'log10_' + equad_str: log10_equad})
+    else:
+        for flag in flags:
+            psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
+                                     {'efac': efac, 'log10_' + equad_str: log10_equad})
+
     if log10_equad is not None:
         equad = 10**log10_equad
     else:
@@ -109,16 +119,6 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
 
-    # update the added_signals dictionary
-    equad_str = 'tnequad' if tnequad else 't2equad'
-    if flags is None:
-        psr.update_added_signals('{}_measurement_noise'.format(psr.name),
-                                 {'efac': efac, 'log10_' + equad_str: log10_equad})
-    else:
-        for flag in flags:
-            psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
-                                     {'efac': efac, 'log10_' + equad_str: log10_equad})
-
 
 def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
                flagid: str = 'f', flags: list = None,
@@ -143,6 +143,15 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
     seed : int
         The seed for the random number generator.
     """
+    # update the added_signals dictionary
+    if flags is None:
+        psr.update_added_signals('{}_jitter'.format(psr.name),
+                                 {'log10_ecorr': log10_ecorr})
+    else:
+        for flag in flags:
+            psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
+                                     {'log10_ecorr': log10_ecorr})
+
     ecorr = 10**log10_ecorr
 
     if seed is not None:
@@ -177,12 +186,3 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
-
-    # update the added_signals dictionary
-    if flags is None:
-        psr.update_added_signals('{}_jitter'.format(psr.name),
-                                 {'log10_ecorr': log10_ecorr})
-    else:
-        for flag in flags:
-            psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
-                                     {'log10_ecorr': log10_ecorr})
