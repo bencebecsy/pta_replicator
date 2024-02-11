@@ -76,9 +76,9 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         psr.update_added_signals('{}_measurement_noise'.format(psr.name),
                                  {'efac': efac, 'log10_' + equad_str: log10_equad})
     else:
-        for flag in flags:
+        for i, flag in enumerate(flags):
             psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
-                                     {'efac': efac, 'log10_' + equad_str: log10_equad})
+                                     {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]})
 
     if log10_equad is not None:
         equad = 10**log10_equad
@@ -148,9 +148,9 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
         psr.update_added_signals('{}_jitter'.format(psr.name),
                                  {'log10_ecorr': log10_ecorr})
     else:
-        for flag in flags:
+        for i, flag in enumerate(flags):
             psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
-                                     {'log10_ecorr': log10_ecorr})
+                                     {'log10_ecorr': log10_ecorr[i]})
 
     ecorr = 10**log10_ecorr
 
