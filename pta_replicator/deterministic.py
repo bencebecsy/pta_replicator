@@ -1,12 +1,12 @@
 import numpy as np
-from constants import SOLAR2S, MPC2S, KPC2S
+from pta_replicator.constants import SOLAR2S, MPC2S, KPC2S
 import ephem
 import astropy as ap
 from astropy.time import TimeDelta
 from astropy import units as u
 from astropy.cosmology import Planck18 as cosmo
 from holodeck import utils
-from pta_replicator.red_noise import create_gwb
+from pta_replicator.red_noise import add_gwb
 
 from numba import njit, prange
 
@@ -540,7 +540,7 @@ def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=1
 
     howml = 10
     
-    create_gwb(psrs, None, None, userSpec=FreeSpec, howml=howml, seed=seed)
+    add_gwb(psrs, None, None, userSpec=FreeSpec, howml=howml, seed=seed)
     
     #for pulsar in psrs:
     #    #print("GWB")
@@ -663,6 +663,64 @@ def add_noise_transient(psr, waveform, tref=0):
     res = waveform(toas)
 
     dt = res * u.s
+    psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
+    # TODO: add parameters to added signals like this
+    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
+    psr.update_residuals()
+
+
+def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd):
+    """
+    Function to add residuals due to a burst with memory (based on code from Jerry Sun)
+    :param psr: pulsar object
+    :param strain: Strain amplitude of burst
+    :param gwtheta: Sky location of theta of source [radians]
+    :param gwphi: Sky location of phi of source [radians]
+    :param bwm_pol: Polarization angle [radians]
+    :param t0_mjd: Burst epoch [MJD]
+    """
+
+    # define variable for later use
+    cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
+    singwtheta, singwphi = np.sin(gwtheta), np.sin(gwphi)
+
+    # unit vectors to GW source
+    m = np.array([singwphi, -cosgwphi, 0.0])
+    n = np.array([-cosgwtheta * cosgwphi, -cosgwtheta * singwphi, singwtheta])
+    omhat = np.array([-singwtheta * cosgwphi, -singwtheta * singwphi, -cosgwtheta])
+
+    # pulsar location
+    if "RAJ" and "DECJ" in psr.loc.keys():
+        ptheta = np.pi / 2 - psr.loc["DECJ"]
+        pphi = psr.loc["RAJ"]
+    elif "ELONG" and "ELAT" in psr.loc.keys():
+        fac = 1.0#180.0 / np.pi #no need in pint
+        if "B" in psr.name:
+            epoch = "1950"
+        else:
+            epoch = "2000"
+        coords = ephem.Equatorial(ephem.Ecliptic(str(psr.loc["ELONG"] * fac), str(psr.loc["ELAT"] * fac)), epoch=epoch)
+
+        ptheta = np.pi / 2 - float(repr(coords.dec))
+        pphi = float(repr(coords.ra))
+
+    # use definition from Sesana et al 2010 and Ellis et al 2012
+    phat = np.array([np.sin(ptheta) * np.cos(pphi), np.sin(ptheta) * np.sin(pphi), np.cos(ptheta)])
+
+    fplus = 0.5 * (np.dot(m, phat) ** 2 - np.dot(n, phat) ** 2) / (1 + np.dot(omhat, phat))
+    fcross = (np.dot(m, phat) * np.dot(n, phat)) / (1 + np.dot(omhat, phat))
+    #cosMu = -np.dot(omhat, phat)
+
+    pol = np.cos(2 * bwm_pol) * fplus + np.sin(2*bwm_pol) * fcross
+
+    #get the toas
+    toas = psr.toas.get_mjds().value * 86400
+    t0_sec = t0_mjd * 86400
+    dt = np.zeros(len(toas))
+    for toa_idx, toa in enumerate(toas):
+        # print(type(toa))
+        dt[toa_idx] = 0 if toa < t0_sec else (pol * strain * (toa - t0_sec))
+    dt = dt*u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     # TODO: add parameters to added signals like this
     # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
