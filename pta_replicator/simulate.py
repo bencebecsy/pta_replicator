@@ -54,11 +54,11 @@ class SimulatedPulsar:
         else:
             self.toas.write_TOA_file(outtim)
 
-    def update_added_signals(self, signal_name, param_dict, deterministic=False):
+    def update_added_signals(self, signal_name, param_dict):
         """
         Update the timing model with a new signal
         """
-        if signal_name in self.added_signals and not deterministic:
+        if signal_name in self.added_signals:
             raise ValueError(f"{signal_name} already exists in the model.")
         self.added_signals[signal_name] = param_dict
 

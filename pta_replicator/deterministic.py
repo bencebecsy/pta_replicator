@@ -26,6 +26,7 @@ def add_cgw(
     evolve=True,
     phase_approx=False,
     tref=0,
+    signal_name='cw',
 ):
     """
     Function to add CW residuals (adapted from libstempo.toasim)
@@ -46,6 +47,22 @@ def add_cgw(
     :param tref: Fidicuial time at which initial parameters are referenced
     """
     
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'mc':mc,
+                              'dist':dist,
+                              'fgw':fgw,
+                              'phase0':phase0,
+                              'psi':psi,
+                              'inc':inc,
+                              'pdist':pdist,
+                              'pphase':pphase,
+                              'psrTerm':psrTerm,
+                              'evolve':evolve,
+                              'phase_approx':phase_approx,
+                              'tref':tref})
+
     # convert units
     mc *= SOLAR2S  # convert from solar masses to seconds
     dist *= MPC2S  # convert from Mpc to seconds
@@ -163,16 +180,30 @@ def add_cgw(
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    # TODO: add parameters to added signals like this
-    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
 
 
 def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_list, phase0_list, psi_list, inc_list, pdist=1.0,
-                       pphase=None, psrTerm=True, evolve=True, phase_approx=False, tref=0, chunk_size=10_000_000):
+                       pphase=None, psrTerm=True, evolve=True, phase_approx=False, tref=0, chunk_size=10_000_000, signal_name='cw_catalog'):
     """
     Method to add a list of many SMBHBs more efficiently than by calling add_cgw multiple times. It takes the same input as add_cgw, except as lists.
     """
+
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'gwtheta_list': gwtheta_list,
+                              'gwphi_list':gwphi_list,
+                              'mc_list':mc_list,
+                              'dist_list':dist_list,
+                              'fgw_list':fgw_list,
+                              'phase0_list':phase0_list,
+                              'psi_list':psi_list,
+                              'inc_list':inc_list,
+                              'pdist':pdist,
+                              'pphase':pphase,
+                              'psrTerm':psrTerm,
+                              'evolve':evolve,
+                              'phase_approx':phase_approx,
+                              'tref':tref})
 
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
@@ -223,8 +254,6 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
         #Now add residual to TOAs
         dt = res * u.s
         psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-        # TODO: add parameters to added signals like this
-        # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
         psr.update_residuals()
 
 
@@ -578,7 +607,7 @@ def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=1
     return f_centers, free_spec, outlier_fo, outlier_hs, outlier_mc, outlier_dl, random_gwthetas, random_gwphis, random_phases, random_psis, random_incs
 
 
-def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=0, remove_quad=False):
+def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=0, remove_quad=False, signal_name='burst'):
     """
     Function to create GW-induced residuals from an arbitrary GW waveform assuming elliptical polarization.
     :param psr: pulsar object
@@ -591,6 +620,15 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
     :param remove_quad: Fit out quadratic from residual if True to simulate f and fdot timing fit.
     :returns: Vector of induced residuals
     """
+
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'waveform_plus':waveform_plus,
+                              'waveform_cross':waveform_cross,
+                              'psi':psi,
+                              'tref':tref,
+                              'remove_quad':remove_quad})
 
     # define variable for later use
     cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
@@ -642,12 +680,10 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    # TODO: add parameters to added signals like this
-    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
 
 
-def add_noise_transient(psr, waveform, tref=0):
+def add_noise_transient(psr, waveform, tref=0, signal_name='noise_transient'):
     """
     Function to create incoherent residuals of arbitrary waveform in a given pulsar.
     :param psr: pulsar object
@@ -655,6 +691,10 @@ def add_noise_transient(psr, waveform, tref=0):
     :param tref: Start time, such that gw_waveform gets t-tref as the time argument
     :returns: Vector of induced residuals
     """
+
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'waveform':waveform,
+                              'tref':tref})
 
     # get toas from pulsar object
     toas = psr.toas.get_mjds().value * 86400 - tref
@@ -664,12 +704,10 @@ def add_noise_transient(psr, waveform, tref=0):
 
     dt = res * u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    # TODO: add parameters to added signals like this
-    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
 
 
-def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd):
+def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd, signal_name='gw_memory'):
     """
     Function to add residuals due to a burst with memory (based on code from Jerry Sun)
     :param psr: pulsar object
@@ -679,6 +717,13 @@ def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd):
     :param bwm_pol: Polarization angle [radians]
     :param t0_mjd: Burst epoch [MJD]
     """
+
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'strain':strain,
+                              'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'bwm_pol':bwm_pol,
+                              't0_mjd':t0_mjd})
 
     # define variable for later use
     cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
@@ -722,6 +767,4 @@ def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd):
         dt[toa_idx] = 0 if toa < t0_sec else (pol * strain * (toa - t0_sec))
     dt = dt*u.s
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
-    # TODO: add parameters to added signals like this
-    # For example: psr.added_signals['{}_white_noise_log10_ecorr'.format(psr.name)] = log10_ecorr
     psr.update_residuals()
