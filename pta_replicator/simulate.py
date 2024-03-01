@@ -90,12 +90,13 @@ def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPul
     residuals = Residuals(toas, model)
     name = model.PSR.value
 
-    try:
+    if hasattr(model, 'RAJ') and hasattr(model, 'DECJ'):
         loc = {'RAJ': model.RAJ.value, 'DECJ': model.DECJ.value}
-    except AttributeError:
+    elif hasattr(model, 'ELONG') and hasattr(model, 'ELAT'):
         loc = {'ELONG': model.ELONG.value, 'ELAT': model.ELAT.value}
     else:
         raise AttributeError("No pulsar location information (RAJ/DECJ or ELONG/ELAT) in parfile.")
+    
 
     return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
