@@ -198,7 +198,9 @@ def add_gwb(
 
         for ii in range(Npulsars):
             if "RAJ" and "DECJ" in psrs[ii].loc:
-                psrlocs[ii] = np.double(psrs[ii]["RAJ"]), np.double(psrs[ii]["DECJ"])
+                psrlocs[ii] = float(psrs[ii].loc["RAJ"]*np.pi/12.0), float(psrs[ii].loc["DECJ"]*np.pi/180.0)
+                ## Lookout for RAJ being in hours instead of degrees
+                ## TODO: check for this in other places that use RAJ
             elif "ELONG" and "ELAT" in psrs[ii].loc:
                 fac = 1.0
                 #fac = 180.0 / np.pi
