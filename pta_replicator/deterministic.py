@@ -90,8 +90,8 @@ def add_cgw(
 
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
-        ptheta = np.pi / 2 - psr.loc["DECJ"]
-        pphi = psr.loc["RAJ"]
+        ptheta = np.pi / 2 - psr.loc["DECJ"]*np.pi/180.0
+        pphi = psr.loc["RAJ"]*np.pi/12.0
     elif "ELONG" and "ELAT" in psr.loc.keys():
         fac = 1.0#180.0 / np.pi #no need in pint
         if "B" in psr.name:
@@ -207,8 +207,8 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
 
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
-        ptheta = np.pi / 2 - psr.loc["DECJ"]
-        pphi = psr.loc["RAJ"]
+        ptheta = np.pi / 2 - psr.loc["DECJ"]*np.pi/180.0
+        pphi = psr.loc["RAJ"]*np.pi/12.0
     elif "ELONG" and "ELAT" in psr.loc.keys():
         fac = 1.0#180.0 / np.pi #no need in pint
         if "B" in psr.name:
@@ -641,8 +641,8 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
 
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
-        ptheta = np.pi / 2 - psr.loc["DECJ"]
-        pphi = psr.loc["RAJ"]
+        ptheta = np.pi / 2 - psr.loc["DECJ"]*np.pi/180.0
+        pphi = psr.loc["RAJ"]*np.pi/12.0
     elif "ELONG" and "ELAT" in psr.loc.keys():
         fac = 1.0#180.0 / np.pi #no need in pint
         if "B" in psr.name:
@@ -736,8 +736,8 @@ def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd, signal_name='gw_
 
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
-        ptheta = np.pi / 2 - psr.loc["DECJ"]
-        pphi = psr.loc["RAJ"]
+        ptheta = np.pi / 2 - psr.loc["DECJ"]*np.pi/180.0
+        pphi = psr.loc["RAJ"]*np.pi/12.0
     elif "ELONG" and "ELAT" in psr.loc.keys():
         fac = 1.0#180.0 / np.pi #no need in pint
         if "B" in psr.name:
