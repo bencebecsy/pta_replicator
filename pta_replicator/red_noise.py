@@ -36,7 +36,7 @@ def extrap1d(interpolator):
 def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
                                   Tspan: float = None, logf: bool = False,
                                   fmin: float = None, fmax: float = None,
-                                  pshift: bool = False, modes: np.ndarray = None) -> tuple:
+                                  pshift: bool = False, libstempo_convention: bool = False, modes: np.ndarray = None) -> tuple:
     """
     Construct fourier design matrix from eq 11 of Lentati et al, 2013
 
@@ -49,6 +49,7 @@ def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
     fmin [float]: Lower sampling frequency.
     fmax [float]: Upper sampling frequency.
     pshift [bool]: Option to add random phase shift.
+    libstempo_convention [bool]: Use libstempo's convention where toas-toas[0] is used in F matrix instead of just toas, and cosine comes before sine
     modes [array]: Option to provide explicit list or array of sampling frequencies.
 
     Returns
@@ -88,17 +89,23 @@ def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
     F = np.zeros((N, 2 * nmodes))
 
     # The sine/cosine modes
-    F[:,::2] = np.sin(2*np.pi*toas[:,None]*f[None,:] +
-                      ranphase[None,:])
-    F[:,1::2] = np.cos(2*np.pi*toas[:,None]*f[None,:] +
-                       ranphase[None,:])
+    if libstempo_convention:
+        F[:,::2] = np.cos(2*np.pi*(toas[:,None]-toas[0,None])*f[None,:] +
+                          ranphase[None,:])
+        F[:,1::2] = np.sin(2*np.pi*(toas[:,None]-toas[0,None])*f[None,:] +
+                           ranphase[None,:])
+    else:
+        F[:,::2] = np.sin(2*np.pi*toas[:,None]*f[None,:] +
+                          ranphase[None,:])
+        F[:,1::2] = np.cos(2*np.pi*toas[:,None]*f[None,:] +
+                           ranphase[None,:])
 
     return F, Ffreqs
 
 
 def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float,
                   components: int = 30, seed: int = None,
-                  modes: np.ndarray = None, Tspan: float = None):
+                  modes: np.ndarray = None, Tspan: float = None, libstempo_convention: bool = False):
     """Add red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma,
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
@@ -117,7 +124,7 @@ def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: 
 
     toas = np.array(psr.toas.table['tdbld'], dtype='float64') * DAY_IN_SEC #to sec
     Tspan = toas.max() - toas.min()
-    F, freqs = create_fourier_design_matrix_red(toas, Tspan=Tspan, nmodes=components, modes=modes)
+    F, freqs = create_fourier_design_matrix_red(toas, Tspan=Tspan, nmodes=components, modes=modes, libstempo_convention=libstempo_convention)
     prior = A**2 * (freqs/fyr)**(-gamma) / (12 * np.pi**2 * Tspan) * YEAR_IN_SEC**3
     y = np.sqrt(prior) * np.random.randn(freqs.size)
     dt = np.dot(F,y) * u.s
