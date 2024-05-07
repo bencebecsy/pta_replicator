@@ -46,8 +46,11 @@ class SimulatedPulsar:
             self.f = pint.fitter.GLSFitter(self.toas, self.model)
         elif fitter == 'downhill':
             self.f = pint.fitter.DownhillGLSFitter(self.toas, self.model)
-        else:
+        elif fitter == 'auto':
             self.f = pint.fitter.Fitter.auto(self.toas, self.model)
+        else:
+            err = f"{fitter=} must be one of 'wls', 'gls', 'downhill' or 'auto'"
+            raise ValueError(err)
         
         self.f.fit_toas(max_chi2_increase=max_chi2_increase, min_lambda=min_lambda)
         self.model = self.f.model
