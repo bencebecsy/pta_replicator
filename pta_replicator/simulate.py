@@ -36,13 +36,20 @@ class SimulatedPulsar:
         """Method to take the current TOAs and model and update the residuals with them"""
         self.residuals = Residuals(self.toas, self.model)
 
-    def fit(self):
-        """Refit the timing model and update everything"""
-        #self.f = pint.fitter.WLSFitter(self.toas, self.model)
-        #self.f = pint.fitter.GLSFitter(self.toas, self.model)
-        #self.f = pint.fitter.DownhillGLSFitter(self.toas, self.model)
-        self.f = pint.fitter.Fitter.auto(self.toas, self.model)
-        self.f.fit_toas()
+    def fit(self, max_chi2_increase=1e-2, min_lambda=1e-3, fitter='auto'):
+        """
+        Refit the timing model and update everything
+        """
+        if fitter == 'wls':
+            self.f = pint.fitter.WLSFitter(self.toas, self.model)
+        elif fitter == 'gls':
+            self.f = pint.fitter.GLSFitter(self.toas, self.model)
+        elif fitter == 'downhill':
+            self.f = pint.fitter.DownhillGLSFitter(self.toas, self.model)
+        else:
+            self.f = pint.fitter.Fitter.auto(self.toas, self.model)
+        
+        self.f.fit_toas(max_chi2_increase=max_chi2_increase, min_lambda=min_lambda)
         self.model = self.f.model
         self.update_residuals()
 
@@ -101,7 +108,7 @@ def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPul
     return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
 
-def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psrs: int = None) -> list:
+def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psrs: int = None, debug=False) -> list:
     """
     Takes a directory of par files and a directory of tim files and
     loads them into a list of SimulatedPulsar objects
@@ -119,6 +126,7 @@ def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psr
         if num_psrs:
             if len(psrs) >= num_psrs:
                 break
+        if debug: print(f"loading {par=}, {tim=}")
         psrs.append(load_pulsar(par, tim, ephem=ephem))
     return psrs
 
