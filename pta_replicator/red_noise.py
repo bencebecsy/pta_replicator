@@ -171,8 +171,6 @@ def add_gwb(
     for psr in psrs:
         psr.update_added_signals('{}_gwb'.format(psr.name), 
                                  {'amplitude': log10_amplitude, 'spectral_index': spectral_index})
-    Amp = 10**log10_amplitude
-    gam = spectral_index
     if seed is not None:
         np.random.seed(seed)
 
@@ -242,7 +240,9 @@ def add_gwb(
 
     # strain amplitude
     if userSpec is None:
-
+        Amp = 10**log10_amplitude
+        gam = spectral_index
+    
         f1yr = 1 / 3.16e7
         alpha = -0.5 * (gam - 3)
         hcf = Amp * (f / f1yr) ** (alpha)
