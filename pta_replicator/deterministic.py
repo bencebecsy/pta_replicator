@@ -192,12 +192,39 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
     ----------
     psr : Pulsar object
     gwtheta_list : 1Darray
-        list of CW source theta's
+        List of polar angles of GW sources in celestial coords [radians]
     gwphi_list : 1Darray
+        List of azimuthal angles of GW sources in celestial coords [radians]
     mc_list : 1Darray
-        list of observed CW source chirp masses 
+        List of observed chirp masses of SMBHBs [solar masses] 
     dist_list : 1Darray
-        list of observed CW source luminosity distances
+        List of luminosity distances to SMBHBs [Mpc]
+    fgw_list : 1Darray
+        List of observed frequencies of GW (twice the orbital frequency) [Hz]
+    phase0_list : 1Darray
+        List of initial phases of GW sources [radians]
+    psi_list : 1Darray
+        List of polarizations of GW sources [radians]
+    inc_list : 1Darray
+        List of inclinations of GW sources [radians]
+    pdist : float
+        Pulsar distance to use other than those in psr [kpc]
+    pphase : float?
+        Use pulsar phase to determine distance [radian]
+    psrTerm : bool
+        Option to include pulsar term [boolean]
+    evolve : bool
+        Option to exclude evolution [boolean]
+    tref:  
+        Fidicuial time at which initial parameters are referenced
+    chunk_size : int
+        default 10_000_000
+    signal_name : str
+        default 'cw_catalog'
+
+    Returns
+    -------
+    None
     
     """
 
