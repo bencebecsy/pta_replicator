@@ -37,9 +37,16 @@ class SimulatedPulsar:
         """Method to take the current TOAs and model and update the residuals with them"""
         self.residuals = Residuals(self.toas, self.model)
 
-    def fit(self, max_chi2_increase=1e-2, min_lambda=1e-3, fitter='auto'):
+    def fit(self, fitter='auto', **fitter_kwargs):
         """
         Refit the timing model and update everything
+
+        Parameters
+        ----------
+        fitter : str
+            Type of fitter to use [auto]
+        fitter_kwargs :
+            Kwargs to pass onto fit_toas. Can be useful to set parameters such as max_chi2_increase, min_lambda, etc.
         """
         if fitter == 'wls':
             self.f = pint.fitter.WLSFitter(self.toas, self.model)
@@ -53,7 +60,7 @@ class SimulatedPulsar:
             err = f"{fitter=} must be one of 'wls', 'gls', 'downhill' or 'auto'"
             raise ValueError(err)
         
-        self.f.fit_toas(max_chi2_increase=max_chi2_increase, min_lambda=min_lambda)
+        self.f.fit_toas(**fitter_kwargs)
         self.model = self.f.model
         self.update_residuals()
 
