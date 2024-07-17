@@ -4,7 +4,7 @@ import ephem
 import astropy as ap
 from astropy.time import TimeDelta
 from astropy import units as u
-# from astropy.cosmology import Planck18 as cosmo
+
 from holodeck import utils, cosmo
 from pta_replicator.red_noise import add_gwb
 
