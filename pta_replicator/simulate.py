@@ -2,6 +2,7 @@
 Code to make simulated PTA datasets with PINT
 Created by Bence Becsy, Jeff Hazboun, Aaron Johnson
 With code adapted from libstempo (Michele Vallisneri)
+
 """
 import glob
 import os
@@ -36,13 +37,30 @@ class SimulatedPulsar:
         """Method to take the current TOAs and model and update the residuals with them"""
         self.residuals = Residuals(self.toas, self.model)
 
-    def fit(self):
-        """Refit the timing model and update everything"""
-        #self.f = pint.fitter.WLSFitter(self.toas, self.model)
-        #self.f = pint.fitter.GLSFitter(self.toas, self.model)
-        #self.f = pint.fitter.DownhillGLSFitter(self.toas, self.model)
-        self.f = pint.fitter.Fitter.auto(self.toas, self.model)
-        self.f.fit_toas()
+    def fit(self, fitter='auto', **fitter_kwargs):
+        """
+        Refit the timing model and update everything
+
+        Parameters
+        ----------
+        fitter : str
+            Type of fitter to use [auto]
+        fitter_kwargs :
+            Kwargs to pass onto fit_toas. Can be useful to set parameters such as max_chi2_increase, min_lambda, etc.
+        """
+        if fitter == 'wls':
+            self.f = pint.fitter.WLSFitter(self.toas, self.model)
+        elif fitter == 'gls':
+            self.f = pint.fitter.GLSFitter(self.toas, self.model)
+        elif fitter == 'downhill':
+            self.f = pint.fitter.DownhillGLSFitter(self.toas, self.model)
+        elif fitter == 'auto':
+            self.f = pint.fitter.Fitter.auto(self.toas, self.model)
+        else:
+            err = f"{fitter=} must be one of 'wls', 'gls', 'downhill' or 'auto'"
+            raise ValueError(err)
+        
+        self.f.fit_toas(**fitter_kwargs)
         self.model = self.f.model
         self.update_residuals()
 
@@ -101,7 +119,7 @@ def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPul
     return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
 
-def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psrs: int = None) -> list:
+def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psrs: int = None, debug=False) -> list:
     """
     Takes a directory of par files and a directory of tim files and
     loads them into a list of SimulatedPulsar objects
@@ -119,6 +137,7 @@ def load_from_directories(pardir: str, timdir: str, ephem:str = 'DE440', num_psr
         if num_psrs:
             if len(psrs) >= num_psrs:
                 break
+        if debug: print(f"loading {par=}, {tim=}")
         psrs.append(load_pulsar(par, tim, ephem=ephem))
     return psrs
 

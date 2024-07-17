@@ -244,7 +244,7 @@ def add_gwb(
 
         Amp = 10**log10_amplitude
         gam = spectral_index
-        
+
         f1yr = 1 / 3.16e7
         alpha = -0.5 * (gam - 3)
         hcf = Amp * (f / f1yr) ** (alpha)
