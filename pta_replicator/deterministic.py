@@ -4,8 +4,8 @@ import ephem
 import astropy as ap
 from astropy.time import TimeDelta
 from astropy import units as u
-from astropy.cosmology import Planck18 as cosmo
-from holodeck import utils
+
+from holodeck import utils, cosmo
 from pta_replicator.red_noise import add_gwb
 
 from numba import njit, prange
@@ -34,8 +34,8 @@ def add_cgw(
     :param psr: pulsar object
     :param gwtheta: Polar angle of GW source in celestial coords [radians]
     :param gwphi: Azimuthal angle of GW source in celestial coords [radians]
-    :param mc: Chirp mass of SMBMB [solar masses]
-    :param dist: Luminosity distance to SMBMB [Mpc]
+    :param mc: Chirp mass of SMBHB [solar masses]
+    :param dist: Luminosity distance to SMBHB [Mpc]
     :param fgw: Frequency of GW (twice the orbital frequency) [Hz]
     :param phase0: Initial Phase of GW source [radians]
     :param psi: Polarization of GW source [radians]
@@ -187,6 +187,45 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
                        pphase=None, psrTerm=True, evolve=True, phase_approx=False, tref=0, chunk_size=10_000_000, signal_name='cw_catalog'):
     """
     Method to add a list of many SMBHBs more efficiently than by calling add_cgw multiple times. It takes the same input as add_cgw, except as lists.
+
+    Parameters
+    ----------
+    psr : Pulsar object
+    gwtheta_list : 1Darray
+        List of polar angles of GW sources in celestial coords [radians]
+    gwphi_list : 1Darray
+        List of azimuthal angles of GW sources in celestial coords [radians]
+    mc_list : 1Darray
+        List of observed chirp masses of SMBHBs [solar masses] 
+    dist_list : 1Darray
+        List of luminosity distances to SMBHBs [Mpc]
+    fgw_list : 1Darray
+        List of observed frequencies of GW (twice the orbital frequency) [Hz]
+    phase0_list : 1Darray
+        List of initial phases of GW sources [radians]
+    psi_list : 1Darray
+        List of polarizations of GW sources [radians]
+    inc_list : 1Darray
+        List of inclinations of GW sources [radians]
+    pdist : float
+        Pulsar distance to use other than those in psr [kpc]
+    pphase : float?
+        Use pulsar phase to determine distance [radian]
+    psrTerm : bool
+        Option to include pulsar term [boolean]
+    evolve : bool
+        Option to exclude evolution [boolean]
+    tref:  
+        Fidicuial time at which initial parameters are referenced
+    chunk_size : int
+        default 10_000_000
+    signal_name : str
+        default 'cw_catalog'
+
+    Returns
+    -------
+    None
+    
     """
 
     psr.update_added_signals('{}_'.format(psr.name)+signal_name,
@@ -502,7 +541,54 @@ def loop_over_CWs(phat, toas, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_
 
 #@profile
 def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=100, seed=None):
-    """Function to create realistic datasets based on holodeck SMBHB populations by injecting loudest binaries individually and the rest as a GWB. Based on methods described in Becsy, Cornish, Kelley (2022)"""
+    """Function to create realistic datasets based on holodeck SMBHB populations by injecting loudest binaries individually and the rest as a GWB. Based on methods described in Becsy, Cornish, Kelley (2022)
+    
+    Parameters
+    ----------
+    psrs : array of Pulsar objects
+        pulsars
+    vals : array of 4 1Darrays
+        [Mtots, Mrats, redZs, Fobs] for each BBH bin
+        Mtots and Mrats use rest frame values
+    weights : 1Darray
+        number of binaries in each bin
+    fobs : 1Darray
+        Frequency bin edges [Hz]
+    T_obs : float
+        PTA observing duration in cgs units (s)
+    outlier_per_bin : int
+        Number of loudest MBHBs to treat individually per bin
+    seed : int
+        Random seed
+
+    Returns
+    -------
+    f_centers : 1Darray
+        Array of frequency bin centers [Hz] of length F
+    free_spec : 1Darray
+        GWB spectrum excluding outliers, hc in each frequency bin
+    outlier_fo : 1Darray
+        Observed frequency of each outlier [Hz]
+        length N_outliers * F
+    outlier_hs : 1Darray
+        Observed hc^2 = h_s^2 * f/df of each outlier
+        length N_outlier * F
+    outlier_mc : 1Darray
+        Observed chirp masses of outlier SMBHBs [solar masses]
+    outlier_dl : 1Darray
+        Luminosity distances to outlier SMBHBs [Mpc]
+    random_gwthetas : 1Darray
+        Randomly assigned polar angle of outliers in celestial coords [radians]  
+    random_gwphis : 1Darray
+        Randomly-assigned azimuthal angle of outliers in celestial coords [radians] 
+    random_phases : 1Darray
+        Randomly assigned initial Phase of outliers [radians] 
+    random_psis : 1Darray
+        Randomly size polarizations of outliers [radians]
+    random_incs : 1Darray
+        Radomly-assigned inclinations of outliers [radians]
+
+    """
     PC = ap.constants.pc.cgs.value
     MSOL = ap.constants.M_sun.cgs.value
     
@@ -512,7 +598,7 @@ def add_gwb_plus_outlier_cws(psrs, vals, weights, fobs, T_obs, outlier_per_bin=1
         
     f_centers = np.array(f_centers)
     
-    mc = utils.chirp_mass(*utils.m1m2_from_mtmr(vals[0], vals[1]))
+    mc = utils.chirp_mass(*utils.m1m2_from_mtmr(vals[0], vals[1])) # rest frame
     rz = vals[2, :]
     frst = vals[3] * (1.0 + rz)
     #get comoving distance for h calculation
