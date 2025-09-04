@@ -119,8 +119,7 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         # next update added_signals dictionary
         for i, flag in enumerate(flags):
             psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
-                                     {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]},
-                                     dt)
+                                     {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]})
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
