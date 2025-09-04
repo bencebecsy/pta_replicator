@@ -46,22 +46,6 @@ def add_cgw(
     :param evolve: Option to exclude evolution [boolean]
     :param tref: Fidicuial time at which initial parameters are referenced
     """
-    
-    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
-                             {'gwtheta': gwtheta,
-                              'gwphi':gwphi,
-                              'mc':mc,
-                              'dist':dist,
-                              'fgw':fgw,
-                              'phase0':phase0,
-                              'psi':psi,
-                              'inc':inc,
-                              'pdist':pdist,
-                              'pphase':pphase,
-                              'psrTerm':psrTerm,
-                              'evolve':evolve,
-                              'phase_approx':phase_approx,
-                              'tref':tref})
 
     # convert units
     mc *= SOLAR2S  # convert from solar masses to seconds
@@ -179,6 +163,24 @@ def add_cgw(
         res = -fplus * rplus - fcross * rcross
 
     dt = res * u.s
+    
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'mc':mc,
+                              'dist':dist,
+                              'fgw':fgw,
+                              'phase0':phase0,
+                              'psi':psi,
+                              'inc':inc,
+                              'pdist':pdist,
+                              'pphase':pphase,
+                              'psrTerm':psrTerm,
+                              'evolve':evolve,
+                              'phase_approx':phase_approx,
+                              'tref':tref},
+                             dt)
+    
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
 
@@ -228,22 +230,6 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
     
     """
 
-    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
-                             {'gwtheta_list': gwtheta_list,
-                              'gwphi_list':gwphi_list,
-                              'mc_list':mc_list,
-                              'dist_list':dist_list,
-                              'fgw_list':fgw_list,
-                              'phase0_list':phase0_list,
-                              'psi_list':psi_list,
-                              'inc_list':inc_list,
-                              'pdist':pdist,
-                              'pphase':pphase,
-                              'psrTerm':psrTerm,
-                              'evolve':evolve,
-                              'phase_approx':phase_approx,
-                              'tref':tref})
-
     # pulsar location
     if "RAJ" and "DECJ" in psr.loc.keys():
         ptheta = np.pi / 2 - psr.loc["DECJ"]*np.pi/180.0
@@ -283,6 +269,24 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
                                          pdist=pdist, pphase=pphase, psrTerm=psrTerm, evolve=evolve, phase_approx=phase_approx)
             #add current batch to TOAs
             dt = res * u.s
+            
+            psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                                     {'gwtheta_list': gwtheta_list,
+                                      'gwphi_list':gwphi_list,
+                                      'mc_list':mc_list,
+                                      'dist_list':dist_list,
+                                      'fgw_list':fgw_list,
+                                      'phase0_list':phase0_list,
+                                      'psi_list':psi_list,
+                                      'inc_list':inc_list,
+                                      'pdist':pdist,
+                                      'pphase':pphase,
+                                      'psrTerm':psrTerm,
+                                      'evolve':evolve,
+                                      'phase_approx':phase_approx,
+                                      'tref':tref},
+                                     dt)
+            
             psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
             psr.update_residuals()
     else:
@@ -292,6 +296,24 @@ def add_catalog_of_cws(psr, gwtheta_list, gwphi_list, mc_list, dist_list, fgw_li
         #End of loop over CW sources
         #Now add residual to TOAs
         dt = res * u.s
+        
+        psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                                 {'gwtheta_list': gwtheta_list,
+                                  'gwphi_list':gwphi_list,
+                                  'mc_list':mc_list,
+                                  'dist_list':dist_list,
+                                  'fgw_list':fgw_list,
+                                  'phase0_list':phase0_list,
+                                  'psi_list':psi_list,
+                                  'inc_list':inc_list,
+                                  'pdist':pdist,
+                                  'pphase':pphase,
+                                  'psrTerm':psrTerm,
+                                  'evolve':evolve,
+                                  'phase_approx':phase_approx,
+                                  'tref':tref},
+                                 dt)
+        
         psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
         psr.update_residuals()
 
@@ -707,15 +729,6 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
     :returns: Vector of induced residuals
     """
 
-    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
-                             {'gwtheta': gwtheta,
-                              'gwphi':gwphi,
-                              'waveform_plus':waveform_plus,
-                              'waveform_cross':waveform_cross,
-                              'psi':psi,
-                              'tref':tref,
-                              'remove_quad':remove_quad})
-
     # define variable for later use
     cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
     singwtheta, singwphi = np.sin(gwtheta), np.sin(gwphi)
@@ -765,6 +778,17 @@ def add_burst(psr, gwtheta, gwphi, waveform_plus, waveform_cross, psi=0.0, tref=
         res = res - pp[0]*toas**2 -pp[1]*toas - pp[2]
 
     dt = res * u.s
+    
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'waveform_plus':waveform_plus,
+                              'waveform_cross':waveform_cross,
+                              'psi':psi,
+                              'tref':tref,
+                              'remove_quad':remove_quad},
+                             dt)
+    
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
 
@@ -778,10 +802,6 @@ def add_noise_transient(psr, waveform, tref=0, signal_name='noise_transient'):
     :returns: Vector of induced residuals
     """
 
-    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
-                             {'waveform':waveform,
-                              'tref':tref})
-
     # get toas from pulsar object
     toas = psr.toas.get_mjds().value * 86400 - tref
 
@@ -789,6 +809,12 @@ def add_noise_transient(psr, waveform, tref=0, signal_name='noise_transient'):
     res = waveform(toas)
 
     dt = res * u.s
+    
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'waveform':waveform,
+                              'tref':tref},
+                             dt)
+    
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
 
@@ -803,13 +829,6 @@ def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd, signal_name='gw_
     :param bwm_pol: Polarization angle [radians]
     :param t0_mjd: Burst epoch [MJD]
     """
-
-    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
-                             {'strain':strain,
-                              'gwtheta': gwtheta,
-                              'gwphi':gwphi,
-                              'bwm_pol':bwm_pol,
-                              't0_mjd':t0_mjd})
 
     # define variable for later use
     cosgwtheta, cosgwphi = np.cos(gwtheta), np.cos(gwphi)
@@ -852,5 +871,14 @@ def add_gw_memory(psr, strain, gwtheta, gwphi, bwm_pol, t0_mjd, signal_name='gw_
         # print(type(toa))
         dt[toa_idx] = 0 if toa < t0_sec else (pol * strain * (toa - t0_sec))
     dt = dt*u.s
+    
+    psr.update_added_signals('{}_'.format(psr.name)+signal_name,
+                             {'strain':strain,
+                              'gwtheta': gwtheta,
+                              'gwphi':gwphi,
+                              'bwm_pol':bwm_pol,
+                              't0_mjd':t0_mjd},
+                             dt)
+    
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
