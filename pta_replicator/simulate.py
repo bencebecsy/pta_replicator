@@ -13,6 +13,7 @@ from pint.residuals import Residuals
 import pint.toa as toa
 from pint import models
 import pint.fitter
+import tqdm
 
 from enterprise.pulsar import Pulsar
 
@@ -29,6 +30,7 @@ class SimulatedPulsar:
     name: str = None
     loc: dict = None
     added_signals: dict = None
+    added_signals_time: dict = None
 
     def __repr__(self):
         return f"SimulatedPulsar({self.name})"
@@ -72,13 +74,15 @@ class SimulatedPulsar:
         else:
             self.toas.write_TOA_file(outtim)
 
-    def update_added_signals(self, signal_name, param_dict):
+    def update_added_signals(self, signal_name, param_dict, dt=None):
         """
         Update the timing model with a new signal
         """
         if signal_name in self.added_signals:
             raise ValueError(f"{signal_name} already exists in the model.")
         self.added_signals[signal_name] = param_dict
+        if dt is not None:
+            self.added_signals_time[signal_name] = dt
 
     def to_enterprise(self, ephem='DE440'):
         """
@@ -150,4 +154,5 @@ def make_ideal(psr: SimulatedPulsar, iterations: int = 2):
         residuals = Residuals(psr.toas, psr.model)
         psr.toas.adjust_TOAs(TimeDelta(-1.0*residuals.time_resids))
     psr.added_signals = {}
+    psr.added_signals_time = {}
     psr.update_residuals()

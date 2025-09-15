@@ -70,15 +70,7 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         Whether to add measurment noise as
         EFAC * (TOA error + EQUAD) [default] or EFAC * TOA error + EQUAD.
     """
-    # update the added_signals dictionary
     equad_str = 'tnequad' if tnequad else 't2equad'
-    if flags is None:
-        psr.update_added_signals('{}_measurement_noise'.format(psr.name),
-                                 {'efac': efac, 'log10_' + equad_str: log10_equad})
-    else:
-        for i, flag in enumerate(flags):
-            psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
-                                     {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]})
 
     if log10_equad is not None:
         equad = 10**log10_equad
@@ -115,6 +107,19 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
         dt += equadvec * np.random.randn(psr.toas.ntoas) * u.s
     else:
         dt += efacvec * equadvec * np.random.randn(psr.toas.ntoas) * u.s
+        
+    # update the added_signals dictionary
+    if flags is None:
+        psr.update_added_signals('{}_measurement_noise'.format(psr.name),
+                                 {'efac': efac, 'log10_' + equad_str: log10_equad},
+                                 dt)
+    else:
+        # update added_signals_time dictionary first
+        psr.update_added_signals('{}_measurement_noise'.format(psr.name), {}, dt)
+        # next update added_signals dictionary
+        for i, flag in enumerate(flags):
+            psr.update_added_signals('{}_{}_measurement_noise'.format(psr.name, flag),
+                                     {'efac': efac[i], 'log10_' + equad_str: log10_equad[i]})
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
@@ -143,14 +148,6 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
     seed : int
         The seed for the random number generator.
     """
-    # update the added_signals dictionary
-    if flags is None:
-        psr.update_added_signals('{}_jitter'.format(psr.name),
-                                 {'log10_ecorr': log10_ecorr})
-    else:
-        for i, flag in enumerate(flags):
-            psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
-                                     {'log10_ecorr': log10_ecorr[i]})
 
     ecorr = 10**log10_ecorr
 
@@ -183,6 +180,19 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
             raise ValueError("ERROR: flags must be same length as jitter")
 
     dt = u.s * np.dot(U * ecorrvec, np.random.randn(U.shape[1]))
+    
+    # update the added_signals dictionary
+    if flags is None:
+        psr.update_added_signals('{}_jitter'.format(psr.name),
+                                 {'log10_ecorr': log10_ecorr},
+                                 dt)
+    else:
+        # update added_signals_time dictionary first
+        psr.update_added_signals('{}_jitter'.format(psr.name), {}, dt)
+        # next update added_signal dictionary
+        for i, flag in enumerate(flags):
+            psr.update_added_signals('{}_{}_jitter'.format(psr.name, flag),
+                                     {'log10_ecorr': log10_ecorr[i]})
 
     psr.toas.adjust_TOAs(TimeDelta(dt.to('day')))
     psr.update_residuals()
