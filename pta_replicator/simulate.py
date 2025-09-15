@@ -8,10 +8,12 @@ import glob
 import os
 from dataclasses import dataclass
 from astropy.time import TimeDelta
+import astropy.units as u
 
 from pint.residuals import Residuals
 import pint.toa as toa
 from pint import models
+from pint.simulation import make_fake_toas_fromMJDs
 import pint.fitter
 import tqdm
 
@@ -89,6 +91,46 @@ class SimulatedPulsar:
         Convert to enterprise PintPulsar object
         """
         return Pulsar(self.toas, self.model, ephem=ephem, timing_package='pint')
+
+
+def simulate_pulsar(parfile: str, obstimes, toaerr, freq=1440.0, observatory="AXIS", flags=None, ephem:str = 'DE440') -> SimulatedPulsar:
+    """
+    Create a SimulatedPulsar object from a par file and a list of toas
+
+    Parameters
+    ----------
+    parfile : str
+        Path to par file
+    obstimes : array
+        List of observation times [MJD]
+    toaerr : float or array
+        Measurement error - either a common error, or a list of errors of the same length as obstimes [us]
+    freq : float or array, optional
+        Observation frequency - either a common value or a list [MHz]
+    observatory : str, optional
+        Observatory for fake toas
+    """
+    if not os.path.isfile(parfile):
+        raise FileNotFoundError("par file does not exist.")
+
+    model = models.get_model(parfile)
+    toas = make_fake_toas_fromMJDs(obstimes, model,
+                                   freq=freq * u.MHz,
+                                   obs=observatory,
+                                   flags=flags,
+                                   error=toaerr * u.us)
+    residuals = Residuals(toas, model)
+    name = model.PSR.value
+
+    if hasattr(model, 'RAJ') and hasattr(model, 'DECJ'):
+        loc = {'RAJ': model.RAJ.value, 'DECJ': model.DECJ.value}
+    elif hasattr(model, 'ELONG') and hasattr(model, 'ELAT'):
+        loc = {'ELONG': model.ELONG.value, 'ELAT': model.ELAT.value}
+    else:
+        raise AttributeError("No pulsar location information (RAJ/DECJ or ELONG/ELAT) in parfile.")
+    
+
+    return SimulatedPulsar(ephem=ephem, model=model, toas=toas, residuals=residuals, name=name, loc=loc)
 
 
 def load_pulsar(parfile: str, timfile: str, ephem:str = 'DE440') -> SimulatedPulsar:
