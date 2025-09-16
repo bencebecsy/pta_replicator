@@ -80,6 +80,8 @@ class SimulatedPulsar:
         """
         Update the timing model with a new signal
         """
+        if self.added_signals is None: #this is first set to None and then to empty dict if make_ideal() is called - so good way to check if that was done
+            raise ValueError("make_ideal() must be called on SimulatedPulsar before adding new signals.")
         if signal_name in self.added_signals:
             raise ValueError(f"{signal_name} already exists in the model.")
         self.added_signals[signal_name] = param_dict
