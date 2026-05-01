@@ -103,17 +103,18 @@ def create_fourier_design_matrix_red(toas: np.ndarray, nmodes: int = 30,
     return F, Ffreqs
 
 
-def create_fourier_design_matrix_red_chromatic(toas: np.ndarray, nmodes: int = 30,
+def create_fourier_design_matrix_red_chromatic(toas: np.ndarray, radio_freqs: np.ndarray, nmodes: int = 30,
                                   Tspan: float = None, logf: bool = False,
                                   fmin: float = None, fmax: float = None,
                                   pshift: bool = False, libstempo_convention: bool = False, modes: np.ndarray = None,
-                                  fref=1400, alpha=2.0) -> tuple:
+                                  fref=1400,chromatic_idx=2.0) -> tuple:
     """
     Construct chromatic fourier design matrix
 
     Parameters
     ----------
     toas [array]: Vector of time series in seconds.
+    radio_freqs [array]: Vector of radio frequencies in MHz.
     nmodes [int]: Number of fourier coefficients to use.
     Tspan [float]: Option to us some other Tspan [s]
     logf [bool]: Use log frequency spacing.
@@ -123,7 +124,7 @@ def create_fourier_design_matrix_red_chromatic(toas: np.ndarray, nmodes: int = 3
     libstempo_convention [bool]: Use libstempo's convention where toas-toas[0] is used in F matrix instead of just toas, and cosine comes before sine
     modes [array]: Option to provide explicit list or array of sampling frequencies.
     fref [float]: Reference frequency for chromaticity.
-    alpha [float]: Chromatic index.
+    chromatic_idx [float]: Chromatic index.
 
     Returns
     -------
@@ -133,7 +134,7 @@ def create_fourier_design_matrix_red_chromatic(toas: np.ndarray, nmodes: int = 3
     F, Ffreqs = create_fourier_design_matrix_red(toas=toas, nmodes=nmodes, Tspan=Tspan, 
                                                  logf=logf, fmin=fmin, fmax=fmax, pshift=pshift,
                                                  libstempo_convention=libstempo_convention, modes=modes)
-    chromaticity = (Ffreqs / fref)**-alpha
+    chromaticity = (radio_freqs / fref)**-chromatic_idx
     
     return F * chromaticity[:, None], Ffreqs 
     
@@ -170,10 +171,10 @@ def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: 
     psr.update_residuals()
     
     
-def add_chromatic_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float, alpha: float, 
+def add_chromatic_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: float, chromatic_idx: float, 
                   components: int = 30, seed: int = None, signal_name: str = 'chrom',
                   modes: np.ndarray = None, Tspan: float = None, libstempo_convention: bool = False):
-    """Add chromatic red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma,
+    """Add chromatic red noise with P(f) = A^2 / (12 pi^2) (f * year)^-gamma * (nu/nu_ref)^(-chromatic_idx),
     using `components` Fourier bases.
     Optionally take a pseudorandom-number-generator seed."""
     psr.update_added_signals('{}_{}_noise'.format(psr.name, signal_name), 
@@ -191,7 +192,7 @@ def add_chromatic_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_i
 
     toas = np.array(psr.toas.table['tdbld'], dtype='float64') * DAY_IN_SEC #to sec
     Tspan = toas.max() - toas.min()
-    F, freqs = create_fourier_design_matrix_red_chromatic(toas, alpha=alpha, Tspan=Tspan, nmodes=components, modes=modes, libstempo_convention=libstempo_convention)
+    F, freqs = create_fourier_design_matrix_red_chromatic(toas, psr.toas.table['freq'].to(u.MHz).value, chromatic_idx=chromatic_idx, Tspan=Tspan, nmodes=components, modes=modes, libstempo_convention=libstempo_convention)
     prior = A**2 * (freqs/fyr)**(-gamma) / (12 * np.pi**2 * Tspan) * YEAR_IN_SEC**3
     y = np.sqrt(prior) * np.random.randn(freqs.size)
     dt = np.dot(F,y) * u.s
@@ -204,7 +205,7 @@ def add_dm_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: f
                   modes: np.ndarray = None, Tspan: float = None, libstempo_convention: bool = False):
     'Convenience function for adding DM noise.'
     add_chromatic_noise(psr=psr, log10_amplitude=log10_amplitude, spectral_index=spectral_index,
-                        alpha=2., components=components, seed=seed, signal_name='dm',
+                        chromatic_idx=2., components=components, seed=seed, signal_name='dm',
                         modes=modes, Tspan=Tspan, libstempo_convention=libstempo_convention)
 
 
