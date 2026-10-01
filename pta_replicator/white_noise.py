@@ -4,10 +4,14 @@ from astropy.time import TimeDelta
 from astropy import units as u
 
 
-def quantize_fast(times, flags=None, dt=1.0):
+def quantize_fast(times, flags=None, dt=1.0, min_toas=1):
     """
     Quantize TOAs into bins of width dt.
     Optionally take a list of TOA flags to use.
+
+    The TOAs are grouped into epochs of width dt, optionally separated by backend flags.
+    Epochs with fewer than `min_toas` TOAs are discarded, enterprise sets this to
+    2 by default.
 
     Parameters
     ----------
@@ -17,31 +21,69 @@ def quantize_fast(times, flags=None, dt=1.0):
         A list of TOA flags to use
     dt : float
         The width of the bins in days.
+    min_toas : int
+        The minimum number of TOAs required for an epoch to be kept.
     """
-    isort = np.argsort(times)
-
-    bucket_ref = [times[isort[0]]]
-    bucket_ind = [[isort[0]]]
-
-    for i in isort[1:]:
-        if times[i] - bucket_ref[-1] < dt:
-            bucket_ind[-1].append(i)
-        else:
-            bucket_ref.append(times[i])
-            bucket_ind.append([i])
-
-    avetoas = np.array([np.mean(times[ind]) for ind in bucket_ind], "d")
+    # If flags are provided, we need to create buckets for each backend
     if flags is not None:
-        aveflags = np.array([flags[ind[0]] for ind in bucket_ind])
-
-    U = np.zeros((len(times), len(bucket_ind)), "d")
-    for i, l in enumerate(bucket_ind):
-        U[l, i] = 1
-
-    if flags is not None:
-        return avetoas, aveflags, U
+        f = np.array(flags)
+        # Create an index list for each unique backend
+        b_idx = [np.where(f == b)[0] for b in np.unique(f)]
     else:
-        return avetoas, U
+        # No backends -> treat as one backend
+        b_idx = [np.arange(len(times))]
+
+    # We need to compute:
+    avg_toas = [] # list to store average TOAs for epoch
+    avg_flags = [] # list to store flags for each epoch
+    U = [] # list representing the U matrix
+
+    for idx in b_idx:
+        t = times[idx] # Extract the times for the current backend
+
+        isort = np.argsort(t) # Sort by the time of arrival (in backend indices)
+
+        bucket_ref = [t[isort[0]]] # list of reference times for each bucket
+        bucket_ind = [[idx[isort[0]]]] # list of list of indices for each bucket
+
+        # Loop through each time and either group it, or make a new bucket
+        for i in isort[1:]:
+            if t[i] - bucket_ref[-1] < dt:
+                bucket_ind[-1].append(idx[i]) # Add the GLOBAL index to the current bucket
+            else:
+                bucket_ref.append(t[i])
+                bucket_ind.append([idx[i]]) # Start a new bucket with the current global index
+
+        # Add the average TOA and flag for each bucket to the lists
+        avg_toas.extend([np.mean(times[ind]) for ind in bucket_ind])
+        if flags is not None:
+            # Add the first flag as the representative flag for the bucket
+            avg_flags.extend([flags[ind[0]] for ind in bucket_ind])
+
+        # Add the bucket indices to the U matrix list
+        U.extend(bucket_ind)
+
+    # After looping through all backends, we have lists of average TOAs, flags, and U indices
+    # Need to convert the lists into arrays
+    avg_toas = np.array(avg_toas, "d")
+    if flags is not None:
+        avg_flags = np.array(avg_flags)
+    # Need to convert U indices into a matrix form
+    U_mat = np.zeros((len(times), len(U)), "d") # (ntoa, n_buckets)
+    for j, l in enumerate(U):
+        U_mat[l, j] = 1
+
+    # Remove 1-sized buckets as they don't get jitter
+    keep = np.sum(U_mat, axis=0) >= min_toas
+    avg_toas = avg_toas[keep]
+    if flags is not None:
+        avg_flags = avg_flags[keep]
+    U_mat = U_mat[:, keep]
+
+    if flags is not None:
+        return avg_toas, avg_flags, U_mat
+    else:
+        return avg_toas, U_mat
 
 
 def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
@@ -127,11 +169,14 @@ def add_measurement_noise(psr: SimulatedPulsar, efac: float = 1.0,
 
 def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
                flagid: str = 'f', flags: list = None,
-               coarsegrain: float = 0.1, seed: int = None):
+               coarsegrain: float = 0.1, min_toas: int = 1, seed: int = None):
     """
     Add correlated quadrature noise of rms ecorr [s],
     with coarse-graining time coarsegrain [days].
     Optionally take a pseudorandom-number-generator seed.
+
+    `min_toas` is the minimum number of TOAs required for an epoch to be kept. 
+    It defaults to 1, but enterprise defaults it to 2.
     
     Parameters
     ----------
@@ -145,6 +190,8 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
         A list of TOA flags to use
     coarsegrain : float
         The coarse-graining time in days.
+    min_toas : int
+        The minimum number of TOAs required for an epoch to be kept.
     seed : int
         The seed for the random number generator.
     """
@@ -155,11 +202,11 @@ def add_jitter(psr: SimulatedPulsar, log10_ecorr: float,
         np.random.seed(seed)
 
     if flags is None:
-        t, U = quantize_fast(psr.toas.get_mjds().value, dt=coarsegrain)
+        t, U = quantize_fast(psr.toas.get_mjds().value, dt=coarsegrain, min_toas=min_toas)
     elif flags is not None:
         t, f, U = quantize_fast(psr.toas.get_mjds().value,
                                 np.array([f[flagid] for f in psr.toas.table['flags'].data]),
-                                dt=coarsegrain)
+                                dt=coarsegrain, min_toas=min_toas)
 
     # default jitter value
     ecorrvec = np.zeros(len(t))
