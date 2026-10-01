@@ -121,7 +121,7 @@ def add_red_noise(psr: SimulatedPulsar, log10_amplitude: float, spectral_index: 
         print('Must use linear spacing.')
 
     toas = np.array(psr.toas.table['tdbld'], dtype='float64') * DAY_IN_SEC #to sec
-    Tspan = toas.max() - toas.min()
+    Tspan = toas.max() - toas.min() if Tspan is None else Tspan
     F, freqs = create_fourier_design_matrix_red(toas, Tspan=Tspan, nmodes=components, modes=modes, libstempo_convention=libstempo_convention)
     prior = A**2 * (freqs/fyr)**(-gamma) / (12 * np.pi**2 * Tspan) * YEAR_IN_SEC**3
     y = np.sqrt(prior) * np.random.randn(freqs.size)
